@@ -1,0 +1,41 @@
+/* stats/static/stats/styles.css */
+body {
+    font-family: Arial, sans-serif;
+}
+
+.banner {
+    background-color: green;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.menu {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.menu button {
+    margin: 0 5px;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.content {
+    text-align: center;
+}
+
+table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    width: 80%;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td {
+    padding: 10px;
+    text-align: center;
+}
