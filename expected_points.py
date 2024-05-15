@@ -1,55 +1,67 @@
-# import historical_data
-
-# def calculate_expected_points(player_name):
-#     # Read the historical data from the file
-#     data = historical_data.load_data()
-
-#     # Find the player's past performance
-#     player_data = data.get(player_name, [])
-
-#     # Calculate the average points scored by the player
-#     total_points = sum(player_data)
-#     average_points = total_points / len(player_data) if len(player_data) > 0 else 0
-
-#     # Return the estimated expected points for the player in their next game
-#     return average_points
-
-# # Example usage
-# player_name = "John Doe"
-# expected_points = calculate_expected_points(player_name)
-# print(f"Expected points for {player_name} in the next game: {expected_points}")
-
-
-
-
-############################ GPT ANSWER###########################
-
+import json
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-import numpy as np
+import statsmodels.api as sm
 
-# Example DataFrame
-team_data = pd.read_csv('')  # Assuming you have your data in a CSV file
+# Load player stats and team ratings
+with open('./JSON/detailed_player_stats.json', 'r') as f:
+    player_stats = json.load(f)
 
-# Splitting the data into features and target
-X = team_data[['team_offensive_ability', 'opponent_defensive_ability']]
-y = team_data['actual_points_scored']
+with open('./JSON/nba_player_short.json', 'r') as f:
+    player_info = json.load(f)
 
-# Splitting data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+with open('./JSON/team_ratings.json', 'r') as f:
+    team_ratings = json.load(f)
 
-# Creating and training the model
+
+
+
+# Convert player stats to a DataFrame
+stats_df = pd.DataFrame(player_stats)
+
+# Join player stats with player info
+stats_df = stats_df.merge(pd.DataFrame(player_info), left_on='Player_ID', right_on='id')
+
+# Feature engineering: Compute defensive rating of the opponent team
+stats_df['Opponent_DEF_Rating'] = stats_df['MATCHUP'].apply(lambda x: team_ratings[x.split()[-1]]['def'])
+
+# Prepare data for regression
+X = stats_df[['FGA', 'FG_PCT', 'FG3A', 'FG3_PCT', 'FTA', 'FT_PCT', 'Opponent_DEF_Rating']]
+y = stats_df['PTS']
+# deleted OREB, DREB, STL, BLK, TOV from the features list
+
+# Train a linear regression model
 model = LinearRegression()
-model.fit(X_train, y_train)
+model.fit(X, y)
 
-# Making predictions and evaluating the model
-predictions = model.predict(X_test)
-mse = mean_squared_error(y_test, predictions)
-print(f"Mean Squared Error: {mse}")
+## Testing the model and its related values ##
+X = sm.add_constant(X)
+model = sm.OLS(y, X).fit()
+print(model.summary())
 
-# Predicting for an upcoming game
-upcoming_game_features = np.array([[team_offensive_rating, opponent_defensive_rating]])  # Replace with actual ratings
-predicted_points = model.predict(upcoming_game_features)
-print(f"Predicted Points for the Upcoming Game: {predicted_points[0]}")
+
+# Function to estimate points for a given player and opponent
+def estimate_points(player_id, opponent_def_rating, past_stats):
+    player_stats = stats_df[stats_df["Player_ID"] == player_id]
+    player_stats = player_stats[['FGA', 'FG_PCT', 'FG3A', 'FG3_PCT', 'FTA', 'FT_PCT', 'Opponent_DEF_Rating']]
+    # player_stats = player_stats.rolling(window=past_stats).mean().dropna()
+    
+    if not player_stats.empty: 
+        features = player_stats.iloc[-1].tolist() + [opponent_def_rating]
+        predicted_points = model.predict([features])[0]
+        return predicted_points
+    else:
+        print(f"No recent stats found for player ID: {player_id}") 
+        return -1000
+    
+    ## Old Code ##
+    # [fga, fg_pct, fg3a, fg3_pct, fta, ft_pct, opponent_def_rating]
+    # return model.predict([features])[0]
+
+
+
+# Example usage
+giannis_id = 203507
+opponent_def_rating = 113.8  # Example: Milwaukee's defensive rating
+estimated_points = estimate_points(giannis_id, opponent_def_rating, 140)
+print(f"Estimated points for Giannis against Milwaukee: {estimated_points:.2f}")
