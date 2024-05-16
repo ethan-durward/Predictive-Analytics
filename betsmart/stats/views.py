@@ -42,6 +42,19 @@ def player_stats(request):
                 if col in last_10_games_avg:
                     last_10_games_avg[col] = round(last_10_games_avg[col] * 100, 1)
 
+            # Convert to formatted string for the template
+            for key in last_5_games_avg:
+                if key in percentage_columns:
+                    last_5_games_avg[key] = f"{last_5_games_avg[key]}%"
+                else:
+                    last_5_games_avg[key] = round(last_5_games_avg[key], 2)
+
+            for key in last_10_games_avg:
+                if key in percentage_columns:
+                    last_10_games_avg[key] = f"{last_10_games_avg[key]}%"
+                else:
+                    last_10_games_avg[key] = round(last_10_games_avg[key], 2)
+
             # Remove PLAYER_ID column
             last_5_games_avg.pop('PLAYER_ID', None)
             last_10_games_avg.pop('PLAYER_ID', None)

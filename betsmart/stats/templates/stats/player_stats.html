@@ -100,13 +100,13 @@
                 <tr>
                     <td>Average Last 5</td>
                     {% for value in last_5_games_avg.values %}
-                        <td>{{ value }}{% if key.endswith('_PCT') %}%{% endif %}</td>
+                        <td>{{ value }}</td>
                     {% endfor %}
                 </tr>
                 <tr>
                     <td>Average Last 10</td>
                     {% for value in last_10_games_avg.values %}
-                        <td>{{ value }}{% if key.endswith('_PCT') %}%{% endif %}</td>
+                        <td>{{ value }}</td>
                     {% endfor %}
                 </tr>
             </table>
