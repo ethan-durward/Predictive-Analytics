@@ -7,3 +7,4 @@ betsmart/start/__pycache__/*
 betsmart/stats/__pycache__/views.cpython-311.pyc
 ___ValueBetEmails/client_secret_gmail.json
 token.json
+___ValueBetEmails/pac_boy.py
