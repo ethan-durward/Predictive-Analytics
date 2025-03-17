@@ -1,4 +1,3 @@
-/* stats/static/stats/styles.css */
 body {
     font-family: Arial, sans-serif;
 }
@@ -6,36 +5,67 @@ body {
 .banner {
     background-color: green;
     color: white;
-    text-align: center;
     padding: 10px 0;
+    text-align: center;
 }
 
 .menu {
-    text-align: center;
     margin: 10px 0;
+    text-align: center;
 }
 
 .menu button {
-    margin: 0 5px;
+    margin: 0 10px;
     padding: 10px 20px;
+    background-color: #f2f2f2;
+    border: 1px solid #ccc;
     cursor: pointer;
 }
 
+.menu button:hover {
+    background-color: #ddd;
+}
+
 .content {
-    text-align: center;
-}
-
-table {
-    margin: 20px auto;
-    border-collapse: collapse;
     width: 80%;
+    margin: 20px auto;
 }
 
-table, th, td {
-    border: 1px solid black;
+.table-space {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
 }
 
-th, td {
-    padding: 10px;
+.table-space th, .table-space td {
+    border: 1px solid #ddd;
+    padding: 8px;
     text-align: center;
+}
+
+.table-space th {
+    background-color: #f2f2f2;
+}
+
+.win {
+    background-color: palegreen;
+}
+
+.loss {
+    background-color: lightcoral;
+}
+
+.player-name, .team-name {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+h2 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 22px;
+    font-weight: bold;
+    text-align: left;
 }

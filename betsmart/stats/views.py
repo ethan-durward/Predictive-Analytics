@@ -1,75 +1,116 @@
-# stats/views.py
 from django.shortcuts import render
-from nba_api.stats.endpoints import playercareerstats, playergamelog
-from nba_api.stats.static import players
+from nba_api.stats.static import players, teams
+from nba_api.stats.endpoints import teamgamelog, playergamelog, playercareerstats, commonteamroster
+from django.http import HttpResponse
 import pandas as pd
+import time
+
+
+def team_stats(request):
+    leagues = ["NBA", "NFL", "NHL"]
+    selected_league = request.POST.get("league")
+    selected_team = request.POST.get("team")
+    team_list = []
+    if selected_league == "NBA":
+        team_list = teams.get_teams()
+    
+    players_stats = []
+    player_map = {}
+    last_5_games_stats = []
+    
+    if selected_team:
+        team_name = next((team['full_name'] for team in team_list if str(team['id']) == selected_team), None)
+        common_team_roster = commonteamroster.CommonTeamRoster(team_id=selected_team, season="2023-24")
+        players = common_team_roster.get_dict()['resultSets'][0]['rowSet']
+        
+        for player in players:
+            player_id = player[14]  # either 0 or 14
+            # print(player)
+            player_name = player[3]  # This index should be correct for player_name
+            player_map[player_id] = player_name
+            
+            
+            # for recent games stats
+            recent_games_endpoint = playergamelog.PlayerGameLog(player_id=player_id).get_data_frames()[0].head(5)
+            recent_games = recent_games_endpoint.to_dict('records')
+            last_5_games_avg = recent_games_endpoint.mean(numeric_only=True).to_dict()    
+            last_5_games_stats.append(last_5_games_avg)        
+            
+            
+            # for season records 
+            stats = playercareerstats.PlayerCareerStats(player_id=player_id).get_data_frames()[0].to_dict('records')
+            for stat in stats:
+                # print("\n\n", stat)
+                if stat['SEASON_ID'] == '2023-24':
+                    stat['player_name'] = player_name
+                    players_stats.append(stat)
+                    # print(stat)
+                    break
+            time.sleep(5)
+            
+
+
+        context = {
+            "leagues": leagues,
+            "selected_league": selected_league,
+            "teams": team_list,
+            "selected_team": selected_team,
+            "recent_games": recent_games,
+            "players_stats": players_stats,
+            "last_5_games_stats": last_5_games_stats,
+            "team_name": team_name,
+            "player_map": player_map,
+        }
+        print("team list: ", context["teams"])
+        print("\n\nselected_league: ", context["selected_league"])
+        print("\n\nselected_team: ", context["selected_team"])
+        print("\n\nplayers_stats: ", context["players_stats"])
+        print("\n\nlast_5_games_stats: ", context["last_5_games_stats"])
+        print("\n\nteam_name: ", context["team_name"])
+        print("\n\nplayer_map: ", context["player_map"])
+    else:
+        context = {
+            "leagues": leagues,
+            "teams": team_list,
+            "selected_league": selected_league,
+            "selected_team": selected_team,
+        }
+
+    return render(request, 'stats/team_stats.html', context)
+
+
 
 def player_stats(request):
-    context = {
-        'leagues': ['NBA', 'NFL', 'NHL'],
-        'players': []
-    }
+    leagues = ['NBA', 'NFL', 'NHL']
+    selected_league = request.POST.get('league')
+    selected_player = request.POST.get('player')
+    stats  = recent_games = last_5_games_avg = last_10_games_avg = player_name = None
 
-    if request.method == 'POST':
-        league = request.POST.get('league')
-        player_id = request.POST.get('player')
+    if selected_league and selected_player:
+        player_id = selected_player
+        career = playercareerstats.PlayerCareerStats(player_id=player_id).get_data_frames()[0]
+        stats = career.to_dict('records')
+        player_name = players.find_player_by_id(player_id)['full_name']
 
-        if league == 'NBA' and player_id:
-            # Fetch career stats and order by season (most recent first)
-            career = playercareerstats.PlayerCareerStats(player_id=player_id).get_data_frames()[0]
-            career = career.sort_values(by='SEASON_ID', ascending=False)
-            context['stats'] = career.to_dict('records')
+        recent_games_endpoint = playergamelog.PlayerGameLog(player_id=player_id).get_data_frames()[0].head(10)
+        recent_games = recent_games_endpoint.to_dict('records')
+        last_5_games_avg = recent_games_endpoint.head(5).mean(numeric_only=True).to_dict()
+        last_10_games_avg = recent_games_endpoint.mean(numeric_only=True).to_dict()
 
-            # Fetch recent 10 games
-            recent_games = playergamelog.PlayerGameLog(player_id=player_id, season='2023-24').get_data_frames()[0]
-            recent_games = recent_games.head(10)  # Get the most recent 10 games
+    return render(request, 'stats/player_stats.html', {
+        'leagues': leagues,
+        'selected_league': selected_league,
+        'recent_games': recent_games,
+        'selected_player': selected_player,
+        'players': players.get_active_players(),
+        'stats': stats,
+        'last_5_games_avg': last_5_games_avg,
+        'last_10_games_avg': last_10_games_avg,
+        'player_name': player_name,
+    })
 
-            # Process the recent games for opponent and home/away
-            recent_games['OPPONENT'] = recent_games['MATCHUP'].apply(lambda x: x.split()[2])
-            recent_games['HOME_AWAY'] = recent_games['MATCHUP'].apply(lambda x: 'Home' if x.split()[1] == 'vs.' else 'Away')
+def probabilities(request):
+    return render(request, 'stats/probabilities.html')
 
-            # Calculate averages for the last 5 and 10 games, excluding non-numeric columns and 'VIDEO_AVAILABLE'
-            numeric_columns = recent_games.select_dtypes(include=['number']).columns
-            numeric_columns = numeric_columns.drop('VIDEO_AVAILABLE', errors='ignore')
-            last_5_games_avg = recent_games.head(5)[numeric_columns].mean().to_dict()
-            last_10_games_avg = recent_games[numeric_columns].mean().to_dict()
-            
-            # Format percentage columns
-            percentage_columns = ['FG_PCT', 'FG3_PCT', 'FT_PCT']
-            for col in percentage_columns:
-                if col in last_5_games_avg:
-                    last_5_games_avg[col] = round(last_5_games_avg[col] * 100, 1)
-                if col in last_10_games_avg:
-                    last_10_games_avg[col] = round(last_10_games_avg[col] * 100, 1)
-
-            # Convert to formatted string for the template
-            for key in last_5_games_avg:
-                if key in percentage_columns:
-                    last_5_games_avg[key] = f"{last_5_games_avg[key]}%"
-                else:
-                    last_5_games_avg[key] = round(last_5_games_avg[key], 2)
-
-            for key in last_10_games_avg:
-                if key in percentage_columns:
-                    last_10_games_avg[key] = f"{last_10_games_avg[key]}%"
-                else:
-                    last_10_games_avg[key] = round(last_10_games_avg[key], 2)
-
-            # Remove PLAYER_ID column
-            last_5_games_avg.pop('PLAYER_ID', None)
-            last_10_games_avg.pop('PLAYER_ID', None)
-
-            context['recent_games'] = recent_games.to_dict('records')
-            context['last_5_games_avg'] = last_5_games_avg
-            context['last_10_games_avg'] = last_10_games_avg
-
-            # Get player's full name
-            player_info = next((p for p in players.get_active_players() if p['id'] == int(player_id)), None)
-            context['player_name'] = player_info['full_name'] if player_info else 'Player'
-
-        active_players = players.get_active_players()
-        context['players'] = sorted(active_players, key=lambda x: x['full_name'])
-        context['selected_league'] = league
-        context['selected_player'] = player_id
-
-    return render(request, 'stats/player_stats.html', context)
+def smart_bets(request):
+    return render(request, 'stats/smart_bets.html')

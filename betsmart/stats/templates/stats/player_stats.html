@@ -1,166 +1,149 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>BetSmart - Player Stats</title>
-    {% load static %}
-    <link rel="stylesheet" type="text/css" href="{% static 'stats/styles.css' %}">
-    <style>
-        .win { background-color: palegreen; }
-        .loss { background-color: palevioletred; }
-        .table-space { margin-bottom: 40px; } /* Adjust this value as needed for spacing */
-        .player-name { font-size: 24px; font-weight: bold; margin-bottom: 20px; } /* Larger font for player name */
-    </style>
-</head>
-<body>
-    <div class="banner">
-        <h1>BetSmart</h1>
-    </div>
-    <div class="menu">
-        <button onclick="window.location.href='{% url 'player_stats' %}'">Player Stats</button>
-        <button>Team Stats</button>
-        <button>Probabilities</button>
-        <button>Smart Bets</button>
-    </div>
-    <div class="content">
-        <form method="POST">
-            {% csrf_token %}
-            <select name="league" id="league-select" onchange="this.form.submit()">
-                <option value="">League Select</option>
-                {% for league in leagues %}
-                    <option value="{{ league }}" {% if selected_league == league %}selected{% endif %}>{{ league }}</option>
-                {% endfor %}
-            </select>
-            <select name="player" id="player-select">
-                <option value="">Player Select</option>
-                {% for player in players %}
-                    <option value="{{ player.id }}" {% if selected_player == player.id %}selected{% endif %}>{{ player.full_name }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">Get Stats</button>
-        </form>
+{% extends 'stats/base.html' %}
+{% load static %}
+{% load custom_filters %}
 
-        {% if stats %}
-            <div class="player-name">{{ player_name }}</div>
-            <h2>Season Stats</h2>
-            <table class="table-space">
-                <tr>
-                    <th>Season</th>
-                    <th>Team</th>
-                    <th>GP</th>
-                    <th>MIN</th>
-                    <th>FGM</th>
-                    <th>FGA</th>
-                    <th>FG%</th>
-                    <th>3PM</th>
-                    <th>3PA</th>
-                    <th>3P%</th>
-                    <th>FTM</th>
-                    <th>FTA</th>
-                    <th>FT%</th>
-                    <th>REB</th>
-                    <th>AST</th>
-                    <th>STL</th>
-                    <th>BLK</th>
-                    <th>TOV</th>
-                    <th>PTS</th>
-                </tr>
-                {% for stat in stats %}
-                    <tr>
-                        <td>{{ stat.SEASON_ID }}</td>
-                        <td>{{ stat.TEAM_ABBREVIATION }}</td>
-                        <td>{{ stat.GP }}</td>
-                        <td>{{ stat.MIN }}</td>
-                        <td>{{ stat.FGM }}</td>
-                        <td>{{ stat.FGA }}</td>
-                        <td>{{ stat.FG_PCT|floatformat:1 }}%</td>
-                        <td>{{ stat.FG3M }}</td>
-                        <td>{{ stat.FG3A }}</td>
-                        <td>{{ stat.FG3_PCT|floatformat:1 }}%</td>
-                        <td>{{ stat.FTM }}</td>
-                        <td>{{ stat.FTA }}</td>
-                        <td>{{ stat.FT_PCT|floatformat:1 }}%</td>
-                        <td>{{ stat.REB }}</td>
-                        <td>{{ stat.AST }}</td>
-                        <td>{{ stat.STL }}</td>
-                        <td>{{ stat.BLK }}</td>
-                        <td>{{ stat.TOV }}</td>
-                        <td>{{ stat.PTS }}</td>
-                    </tr>
-                {% endfor %}
-            </table>
+{% block content %}
 
-            <h2>Averages</h2>
-            <table class="table-space">
-                <tr>
-                    <th></th>
-                    {% for key in last_5_games_avg.keys %}
-                        <th>{{ key }}</th>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <td>Average Last 5</td>
-                    {% for value in last_5_games_avg.values %}
-                        <td>{{ value }}</td>
-                    {% endfor %}
-                </tr>
-                <tr>
-                    <td>Average Last 10</td>
-                    {% for value in last_10_games_avg.values %}
-                        <td>{{ value }}</td>
-                    {% endfor %}
-                </tr>
-            </table>
+<div class="content">
+    <form method="POST">
+        {% csrf_token %}
+        <select name="league" id="league-select" onchange="this.form.submit()">
+            <option value="">League Select</option>
+            {% for league in leagues %}
+                <option value="{{ league }}" {% if selected_league == league %}selected{% endif %}>{{ league }}</option>
+            {% endfor %}
+        </select>
+        <select name="player" id="player-select">
+            <option value="">Player Select</option>
+            {% for player in players %}
+                <option value="{{ player.id }}" {% if selected_player == player.id %}selected{% endif %}>{{ player.full_name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Get Stats</button>
+    </form>
 
-            <h2>Previous 10 Games</h2>
-            <table>
+    {% if stats %}
+        <div class="player-name">{{ player_name }}</div>
+        <h2>Season Stats</h2>
+        <table class="table-space">
+            <tr>
+                <th>Season</th>
+                <th>Team</th>
+                <th>GP</th>
+                <th>MIN</th>
+                <th>FGM</th>
+                <th>FGA</th>
+                <th>FG%</th>
+                <th>3PM</th>
+                <th>3PA</th>
+                <th>3P%</th>
+                <th>FTM</th>
+                <th>FTA</th>
+                <th>FT%</th>
+                <th>REB</th>
+                <th>AST</th>
+                <th>STL</th>
+                <th>BLK</th>
+                <th>TOV</th>
+                <th>PTS</th>
+            </tr>
+            {% for stat in stats %}
                 <tr>
-                    <th>Date</th>
-                    <th>Opponent</th>
-                    <th>Home/Away</th>
-                    <th>Result</th>
-                    <th>Min</th>
-                    <th>FGM</th>
-                    <th>FGA</th>
-                    <th>FG%</th>
-                    <th>3PM</th>
-                    <th>3PA</th>
-                    <th>3P%</th>
-                    <th>FTM</th>
-                    <th>FTA</th>
-                    <th>FT%</th>
-                    <th>REB</th>
-                    <th>AST</th>
-                    <th>STL</th>
-                    <th>BLK</th>
-                    <th>TOV</th>
-                    <th>PTS</th>
+                    <td>{{ stat.SEASON_ID }}</td>
+                    <td>{{ stat.TEAM_ABBREVIATION }}</td>
+                    <td>{{ stat.GP }}</td>
+                    <td>{{ stat.MIN }}</td>
+                    <td>{{ stat.FGM }}</td>
+                    <td>{{ stat.FGA }}</td>
+                    <td>{{ stat.FG_PCT|floatformat:1 }}%</td>
+                    <td>{{ stat.FG3M }}</td>
+                    <td>{{ stat.FG3A }}</td>
+                    <td>{{ stat.FG3_PCT|floatformat:1 }}%</td>
+                    <td>{{ stat.FTM }}</td>
+                    <td>{{ stat.FTA }}</td>
+                    <td>{{ stat.FT_PCT|floatformat:1 }}%</td>
+                    <td>{{ stat.REB }}</td>
+                    <td>{{ stat.AST }}</td>
+                    <td>{{ stat.STL }}</td>
+                    <td>{{ stat.BLK }}</td>
+                    <td>{{ stat.TOV }}</td>
+                    <td>{{ stat.PTS }}</td>
                 </tr>
-                {% for game in recent_games %}
-                    <tr>
-                        <td>{{ game.GAME_DATE }}</td>
-                        <td>{{ game.OPPONENT }}</td>
-                        <td>{{ game.HOME_AWAY }}</td>
-                        <td class="{% if game.WL == 'L' %}loss{% else %}win{% endif %}">{{ game.WL }}</td>
-                        <td>{{ game.MIN }}</td>
-                        <td>{{ game.FGM }}</td>
-                        <td>{{ game.FGA }}</td>
-                        <td>{{ game.FG_PCT|floatformat:1 }}%</td>
-                        <td>{{ game.FG3M }}</td>
-                        <td>{{ game.FG3A }}</td>
-                        <td>{{ game.FG3_PCT|floatformat:1 }}%</td>
-                        <td>{{ game.FTM }}</td>
-                        <td>{{ game.FTA }}</td>
-                        <td>{{ game.FT_PCT|floatformat:1 }}%</td>
-                        <td>{{ game.REB }}</td>
-                        <td>{{ game.AST }}</td>
-                        <td>{{ game.STL }}</td>
-                        <td>{{ game.BLK }}</td>
-                        <td>{{ game.TOV }}</td>
-                        <td>{{ game.PTS }}</td>
-                    </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Averages</h2>
+        <table class="table-space">
+            <tr>
+                <th></th>
+                {% for key in last_5_games_avg.keys %}
+                    <th>{{ key }}</th>
                 {% endfor %}
-            </table>
-        {% endif %}
-    </div>
-</body>
-</html>
+            </tr>
+            <tr>
+                <td>Average Last 5</td>
+                {% for value in last_5_games_avg.values %}
+                    <td>{{ value }}</td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td>Average Last 10</td>
+                {% for value in last_10_games_avg.values %}
+                    <td>{{ value }}</td>
+                {% endfor %}
+            </tr>
+        </table>
+
+        <h2>Previous 10 Games</h2>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Opponent</th>
+                <th>Home/Away</th>
+                <th>Result</th>
+                <th>Min</th>
+                <th>FGM</th>
+                <th>FGA</th>
+                <th>FG%</th>
+                <th>3PM</th>
+                <th>3PA</th>
+                <th>3P%</th>
+                <th>FTM</th>
+                <th>FTA</th>
+                <th>FT%</th>
+                <th>REB</th>
+                <th>AST</th>
+                <th>STL</th>
+                <th>BLK</th>
+                <th>TOV</th>
+                <th>PTS</th>
+            </tr>
+            {% for game in recent_games %}
+                <tr>
+                    <td>{{ game.GAME_DATE }}</td>
+                    <td>{{ game.OPPONENT }}</td>
+                    <td>{{ game.HOME_AWAY }}</td>
+                    <td class="{% if game.WL == 'L' %}loss{% else %}win{% endif %}">{{ game.WL }}</td>
+                    <td>{{ game.MIN }}</td>
+                    <td>{{ game.FGM }}</td>
+                    <td>{{ game.FGA }}</td>
+                    <td>{{ game.FG_PCT|floatformat:1 }}%</td>
+                    <td>{{ game.FG3M }}</td>
+                    <td>{{ game.FG3A }}</td>
+                    <td>{{ game.FG3_PCT|floatformat:1 }}%</td>
+                    <td>{{ game.FTM }}</td>
+                    <td>{{ game.FTA }}</td>
+                    <td>{{ game.FT_PCT|floatformat:1 }}%</td>
+                    <td>{{ game.REB }}</td>
+                    <td>{{ game.AST }}</td>
+                    <td>{{ game.STL }}</td>
+                    <td>{{ game.BLK }}</td>
+                    <td>{{ game.TOV }}</td>
+                    <td>{{ game.PTS }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
+</div>
+
+{% endblock %}
