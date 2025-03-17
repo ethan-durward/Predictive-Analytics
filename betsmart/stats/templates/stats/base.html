@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BetSmart</title>
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'stats/styles.css' %}">
+    <style>
+        .win { background-color: palegreen; }
+        .loss { background-color: palevioletred; }
+        .table-space { margin-bottom: 40px; } /* Adjust this value as needed for spacing */
+        .team-name, .player-name { font-size: 24px; font-weight: bold; margin-bottom: 20px; } /* Larger font for names */
+    </style>
+</head>
+<body>
+    <div class="banner">
+        <h1>BetSmart</h1>
+    </div>
+    <div class="menu">
+        <button onclick="window.location.href='{% url 'player_stats' %}'">Player Stats</button>
+        <button onclick="window.location.href='{% url 'team_stats' %}'">Team Stats</button>
+        <button onclick="window.location.href='{% url 'probabilities' %}'">Probabilities</button>
+        <button onclick="window.location.href='{% url 'smart_bets' %}'">Smart Bets</button>
+    </div>
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>
