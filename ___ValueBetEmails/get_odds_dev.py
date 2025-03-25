@@ -66,7 +66,7 @@ def multiplicative_devig(p1, p2):
     true_p1 = p1/sum_p
     true_p2 = p2/sum_p
     
-    return max(min(true_p1,1),0), max(min(true_p2,1),0)
+    return max(min(true_p1, p1, 1),0), max(min(true_p2, p2, 1),0)
 
 def additive_devig(p1, p2):
     """Additive de-vigging method"""
@@ -75,7 +75,7 @@ def additive_devig(p1, p2):
     true_p1 = p1 - excess
     true_p2 = p2 - excess
     
-    return max(min(true_p1,1),0), max(min(true_p2,1),0)
+    return max(min(true_p1, p1, 1),0), max(min(true_p2, p2, 1),0)
 
 def power_devig(p1, p2):
     """Power de-vigging method"""
@@ -89,7 +89,7 @@ def power_devig(p1, p2):
     true_p1 = (p1 / overround) ** k_solution
     true_p2 = (p2 / overround) ** k_solution
     
-    return max(min(true_p1,1),0), max(min(true_p2,1),0)
+    return max(min(true_p1, p1, 1),0), max(min(true_p2, p2, 1),0)
 
 def shin_devig(p1, p2):
     """Shin's method for de-vigging"""
@@ -108,7 +108,7 @@ def shin_devig(p1, p2):
     adjusted_prob_1 /= total_adjusted_prob
     adjusted_prob_2 /= total_adjusted_prob
 
-    return max(min(adjusted_prob_1,1),0), max(min(adjusted_prob_2,1),0)
+    return max(min(adjusted_prob_1, p1, 1),0), max(min(adjusted_prob_2, p2, 1),0)
 
 def hybrid_devig(odds1, odds2):
     """
@@ -163,7 +163,7 @@ def hybrid_devig(odds1, odds2):
     print(final_p2)
     print()
     
-    return max(min(final_p1,1),0), max(min(final_p2,1),0)
+    return max(min(final_p1, p1, 1),0), max(min(final_p2, p2, 1),0)
 
 def calculate_bet_size(true_prob, offered_odds, expected_value, base_unit=100):
     """
@@ -202,7 +202,9 @@ load_dotenv(dotenv_path=env_path)
 
 api_key = os.getenv('ODDS_API_KEY')
 threshold = float(os.getenv('THRESHOLD'))
-url_nba = os.getenv('NBA_URL')
+url_nba = os.getenv('MARCH_URL')
+# url_nba = os.getenv('NBA_URL')
+
 email_status = os.getenv('EMAIL_STATUS')
 
 nba_odds = get_nba_total_score_odds(api_key, url_nba)
@@ -262,6 +264,8 @@ if nba_odds:
                         implied_prob_home = one_over_input(home_odds)
                         implied_prob_away = one_over_input(away_odds)
                         adjusted_prob_home, adjusted_prob_away = hybrid_devig(home_odds, away_odds)
+                        print(f'Home odds: {home_odds}, Adjusted: {one_over_input(adjusted_prob_home):.3}')
+                        print(f'Away odds: {away_odds}, Adjusted: {one_over_input(adjusted_prob_away):.3}')
                         
                         
                         game_h2h_home_list.append(adjusted_prob_home) # the estimated probability using hybrid devig
