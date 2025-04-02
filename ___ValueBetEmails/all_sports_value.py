@@ -382,7 +382,7 @@ def find_value_bets(value_bets, games_dict, threshold, home_team, away_team):
 
                 value_bets[game].append({
                     'bookmaker': bookmaker,
-                    'bet_type': home_team,
+                    'bet_type': 'home',
                     'true_prob': probability_home,
                     'offered_odds': bookie_home_odds,
                     'expected_value': home_value,
@@ -404,7 +404,7 @@ def find_value_bets(value_bets, games_dict, threshold, home_team, away_team):
 
                 value_bets[game].append({
                     'bookmaker': bookmaker,
-                    'bet_type': away_team,
+                    'bet_type': 'away',
                     'true_prob': probability_away,
                     'offered_odds': bookie_away_odds,
                     'expected_value': away_value,
