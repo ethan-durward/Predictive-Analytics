@@ -1,0 +1,86 @@
+{% extends 'betting/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>Value Bets Dashboard</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <button id="refresh-btn" class="btn btn-primary">Refresh Now</button>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <span>Last updated: <span id="last-update-time">{{ last_update|date:"F j, Y, g:i a" }}</span></span>
+                <span id="refresh-status"></span>
+                <span>Auto-refresh: <span id="countdown">60</span> seconds</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="value-bets-container">
+    {% if games %}
+        {% for game in games %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ game.title }}</h5>
+                    <small>{{ game.commence_time|date:"F j, Y, g:i a" }}</small>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for bet in game.value_bets.all %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 {% if bet.is_high_value %}border-danger{% elif bet.is_good_value %}border-success{% endif %}">
+                                    <div class="card-header {% if bet.is_high_value %}bg-danger text-white{% elif bet.is_good_value %}bg-success text-white{% endif %}">
+                                        <h6 class="mb-0">{{ bet.bookmaker }}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">
+                                                <strong>Bet Type:</strong> {{ bet.bet_type|title }} ({% if bet.bet_type == 'home' %}{{ game.home_team }}{% else %}{{ game.away_team }}{% endif %})
+                                            </li>
+                                            <li class="list-group-item">
+                                                <strong>True Probability:</strong> {{ bet.true_prob_percent }}
+                                            </li>
+                                            <li class="list-group-item">
+                                                <strong>Bookmaker Odds:</strong> {{ bet.offered_odds|floatformat:2 }}
+                                            </li>
+                                            <li class="list-group-item">
+                                                <strong>Expected Value:</strong> {{ bet.expected_value|floatformat:3 }}
+                                            </li>
+                                            <li class="list-group-item">
+                                                <strong>Recommended Bet:</strong> ${{ bet.bet_size }}
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="card-footer">
+                                        {% if bet.is_high_value %}
+                                            <div class="text-danger fw-bold">🔥 HIGH VALUE BET!</div>
+                                        {% elif bet.is_good_value %}
+                                            <div class="text-success fw-bold">✅ GOOD VALUE</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">No Value Bets Found</h4>
+            <p>No value bets meeting the threshold criteria were found at this time. Try again later or adjust your threshold settings.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% load static %}
+<script src="{% static 'js/refresh.js' %}"></script>
+{% endblock %} 

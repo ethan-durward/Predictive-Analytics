@@ -1,0 +1,31 @@
+body {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+footer {
+    margin-top: auto;
+}
+
+.card-header h5 {
+    margin-bottom: 0;
+}
+
+.alert-info {
+    background-color: #e3f2fd;
+    border-color: #b2dffc;
+}
+
+#refresh-status {
+    font-weight: bold;
+}
+
+.border-danger {
+    border-width: 2px;
+}
+
+.border-success {
+    border-width: 2px;
+} 
