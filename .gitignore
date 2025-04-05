@@ -11,3 +11,4 @@ ___ValueBetEmails/pac_boy.py
 **.pye
 **.pyi
 betsmart/env/*
+.venv
