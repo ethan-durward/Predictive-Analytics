@@ -3,38 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Value Betting Dashboard</title>
+    <title>ValueBet - Sports Betting Edge Finder</title>
     {% load static %}
+    <!-- Font preload -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/favicon.svg' %}">
+    <link rel="alternate icon" href="{% static 'img/favicon.png' %}" type="image/png">
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <!-- Theme color for mobile browsers -->
+    <meta name="theme-color" content="#2563eb">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container">
-            <a class="navbar-brand" href="{% url 'betting:home' %}">Value Betting</a>
+            <a class="navbar-brand" href="{% url 'betting:home' %}">
+                <i class="fas fa-chart-line me-2"></i>ValueBet
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'betting:home' %}">Home</a>
+                        <a class="nav-link active" href="{% url 'betting:home' %}">
+                            <i class="fas fa-home me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-book me-1"></i> Documentation
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" target="_blank">
+                            <i class="fab fa-github me-1"></i> GitHub
+                        </a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mb-5">
         {% block content %}{% endblock %}
     </div>
 
-    <footer class="bg-dark text-white text-center py-3 mt-5">
+    <footer class="py-4">
         <div class="container">
-            <p class="mb-0">Value Betting Dashboard &copy; {% now "Y" %}</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 class="text-white mb-3">ValueBet</h5>
+                    <p class="text-white-50 mb-0">Finding betting value across multiple sportsbooks using advanced probability models and the Kelly criterion.</p>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-white mb-3">Sports</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li><a href="#" class="text-white-50">NBA</a></li>
+                        <li><a href="#" class="text-white-50">NHL</a></li>
+                        <li><a href="#" class="text-white-50">NCAA Basketball</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h6 class="text-white mb-3">Links</h6>
+                    <ul class="list-unstyled mb-0">
+                        <li><a href="{% url 'betting:home' %}" class="text-white-50">Dashboard</a></li>
+                        <li><a href="#" class="text-white-50">About</a></li>
+                        <li><a href="#" class="text-white-50">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 bg-white-50 opacity-25">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="text-white-50 mb-0">
+                        &copy; {% now "Y" %} ValueBet. All rights reserved.
+                    </p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <ul class="list-inline mb-0">
+                        <li class="list-inline-item">
+                            <a href="#" class="text-white-50"><i class="fab fa-twitter fa-lg"></i></a>
+                        </li>
+                        <li class="list-inline-item ms-3">
+                            <a href="#" class="text-white-50"><i class="fab fa-github fa-lg"></i></a>
+                        </li>
+                        <li class="list-inline-item ms-3">
+                            <a href="#" class="text-white-50"><i class="fab fa-linkedin fa-lg"></i></a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </footer>
 
+    <!-- Toast container for notifications -->
+    <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;"></div>
+
+    <!-- JavaScript Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     {% block scripts %}{% endblock %}

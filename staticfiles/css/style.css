@@ -1,31 +1,570 @@
+:root {
+    --primary-color: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #dbeafe;
+    --success-color: #059669;
+    --danger-color: #dc2626;
+    --warning-color: #f59e0b;
+    --dark-color: #111827;
+    --light-color: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-700: #374151;
+    --gray-900: #111827;
+    --border-radius: 0.5rem;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
 body {
-    background-color: #f8f9fa;
+    background-color: var(--gray-100);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    color: var(--gray-700);
+    line-height: 1.6;
+}
+
+.navbar {
+    box-shadow: var(--shadow);
+    background: linear-gradient(to right, var(--primary-dark), var(--primary-color));
+}
+
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: white;
+    font-weight: 500;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    color: var(--dark-color);
+    letter-spacing: -0.025em;
+    margin-bottom: 1rem;
+}
+
+h1 {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
 }
 
 footer {
     margin-top: auto;
+    padding: 2rem 0;
+    background: linear-gradient(to right, var(--gray-900), var(--dark-color));
+    color: white;
 }
 
-.card-header h5 {
-    margin-bottom: 0;
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    margin-bottom: 2rem;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--border-radius);
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.alert {
+    border-radius: var(--border-radius);
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    border: none;
+    box-shadow: var(--shadow-sm);
 }
 
 .alert-info {
-    background-color: #e3f2fd;
-    border-color: #b2dffc;
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    border-left: 4px solid var(--primary-color);
+}
+
+.alert-warning {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid var(--warning-color);
 }
 
 #refresh-status {
-    font-weight: bold;
+    font-weight: 600;
+    color: var(--primary-color);
+    transition: color 0.3s ease;
+}
+
+.status-updating {
+    color: var(--warning-color) !important;
+}
+
+.status-success {
+    color: var(--success-color) !important;
+}
+
+.status-error {
+    color: var(--danger-color) !important;
+}
+
+/* Card Styling */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    padding: 1.25rem 1.5rem;
+    background-color: white;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.card-header h5 {
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+    color: var(--dark-color);
+}
+
+.card-header small {
+    color: var(--gray-700);
+    font-size: 0.875rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.bg-primary {
+    background: linear-gradient(to right, var(--primary-dark), var(--primary-color)) !important;
+}
+
+.bg-danger {
+    background: linear-gradient(to right, #be123c, var(--danger-color)) !important;
+}
+
+.bg-success {
+    background: linear-gradient(to right, #047857, var(--success-color)) !important;
+}
+
+.card .list-group-item {
+    padding: 1rem 1.5rem;
+    border-color: var(--gray-200);
+}
+
+.list-group-item strong {
+    color: var(--dark-color);
+    font-weight: 600;
+}
+
+/* Value Bet Cards */
+.value-bet-card {
+    height: 100%;
+}
+
+.card-footer {
+    background-color: white;
+    border-top: 1px solid var(--gray-200);
+    padding: 1rem 1.5rem;
+}
+
+.text-danger {
+    color: var(--danger-color) !important;
+}
+
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.fw-bold {
+    font-weight: 600 !important;
 }
 
 .border-danger {
-    border-width: 2px;
+    border: 2px solid var(--danger-color) !important;
 }
 
 .border-success {
-    border-width: 2px;
+    border: 2px solid var(--success-color) !important;
+}
+
+/* Animation */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.refreshing {
+    animation: pulse 1.5s infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1.25rem;
+    }
+    
+    .list-group-item {
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .page-header .btn {
+        width: 100%;
+    }
+}
+
+/* Loading indicator */
+.loading-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 3px solid var(--gray-200);
+    border-radius: 50%;
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Checkbox Dropdown Improvements */
+.dropdown-check-list .anchor {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
+    background-color: white;
+    transition: all 0.2s ease;
+}
+
+.dropdown-check-list .anchor:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.15);
+}
+
+.dropdown-check-list .items {
+    animation: fadeDown 0.2s ease-out;
+    z-index: 1010;
+}
+
+@keyframes fadeDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-check-list .items li:first-child {
+    border-bottom: 1px solid var(--gray-200);
+    font-weight: 600;
+}
+
+.dropdown-check-list .items li:first-child label {
+    color: var(--primary-color);
+}
+
+.dropdown-check-list .items input[type="checkbox"] {
+    accent-color: var(--primary-color);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Stats Cards Improvements */
+.stats-card {
+    transition: all 0.3s ease;
+}
+
+.stats-card:hover .stats-icon {
+    transform: scale(1.1);
+}
+
+.stats-icon {
+    transition: transform 0.3s ease;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stats-icon i {
+    font-size: 1.5rem;
+}
+
+/* Better mobile experience */
+@media (max-width: 768px) {
+    .dropdown-check-list .items {
+        max-height: 250px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+    
+    .card-header {
+        padding: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .list-group-item {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+    
+    .game-card .badge {
+        font-size: 0.7rem;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .page-header p {
+        font-size: 0.9rem;
+    }
+    
+    #bets-count {
+        text-align: center;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary-light: rgba(37, 99, 235, 0.2);
+    }
+    
+    body {
+        background-color: var(--gray-900);
+        color: var(--gray-300);
+    }
+    
+    .card {
+        background-color: var(--gray-800);
+        border-color: var(--gray-700);
+    }
+    
+    .card-header, .card-footer, .list-group-item {
+        background-color: var(--gray-800);
+        border-color: var(--gray-700);
+    }
+    
+    .dropdown-check-list .anchor,
+    .form-select {
+        background-color: var(--gray-800);
+        color: var(--gray-300);
+        border-color: var(--gray-700);
+    }
+    
+    .dropdown-check-list .items {
+        background-color: var(--gray-800);
+        border-color: var(--gray-700);
+    }
+    
+    .badge.bg-light {
+        background-color: var(--gray-700) !important;
+        color: var(--gray-300) !important;
+    }
+    
+    h1, h2, h3, h4, h5, h6, .card-header h5, .list-group-item strong {
+        color: white;
+    }
+}
+
+/* Print styles for value bet reports */
+@media print {
+    .navbar, .footer, #refresh-btn, .filters, .place-bet-btn {
+        display: none !important;
+    }
+    
+    .container {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .card {
+        break-inside: avoid;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+    
+    .card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+    
+    body {
+        background-color: white;
+        color: black;
+        font-size: 12pt;
+    }
+    
+    h1 {
+        font-size: 18pt;
+    }
+    
+    h5 {
+        font-size: 14pt;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+/* Focus styles for accessibility */
+a:focus, button:focus, input:focus, select:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.form-select:focus, .dropdown-check-list .anchor:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
+}
+
+/* Improved Card Styling */
+.stats-card {
+    border-left: 4px solid transparent;
+    opacity: 0;
+    position: relative;
+    top: 10px;
+}
+
+.stats-card:nth-child(1) {
+    border-left-color: var(--primary-color);
+}
+
+.stats-card:nth-child(2) {
+    border-left-color: var(--success-color);
+}
+
+.stats-card:nth-child(3) {
+    border-left-color: var(--warning-color);
+}
+
+.bg-primary-light {
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+.bg-success-light {
+    background-color: rgba(5, 150, 105, 0.1);
+}
+
+.bg-warning-light {
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+/* Enhanced badge styling */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.025em;
+}
+
+.badge.rounded-pill {
+    padding: 0.35em 0.8em;
+}
+
+/* Better layout for the filters */
+.filters .card-body {
+    padding: 1.25rem 1.5rem;
+}
+
+.filters .form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+/* Better button styles */
+.btn-outline-primary {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* Enhanced list group items */
+.list-group-item:first-child {
+    border-top: none;
 } 

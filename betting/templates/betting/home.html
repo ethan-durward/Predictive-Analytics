@@ -1,22 +1,106 @@
 {% extends 'betting/base.html' %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <h1>Value Bets Dashboard</h1>
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-bolt me-2"></i>Value Bets Dashboard</h1>
+        <p class="text-muted">Find valuable betting opportunities across multiple sportsbooks</p>
     </div>
-    <div class="col-md-4 text-end">
-        <button id="refresh-btn" class="btn btn-primary">Refresh Now</button>
+    <button id="refresh-btn" class="btn btn-primary">
+        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+    </button>
+</div>
+
+<div class="status-bar card mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-clock text-primary me-2"></i>
+                    <div>
+                        <span class="d-block text-muted small">LAST UPDATED</span>
+                        <strong id="last-update-time">{{ last_update|date:"F j, Y, g:i a" }}</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div id="refresh-status-container">
+                    <span id="refresh-status" class=""></span>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex align-items-center justify-content-end">
+                    <i class="fas fa-hourglass-half text-primary me-2"></i>
+                    <div>
+                        <span class="d-block text-muted small">AUTO-REFRESH IN</span>
+                        <strong><span id="countdown">60</span> seconds</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="alert alert-info">
-            <div class="d-flex justify-content-between align-items-center">
-                <span>Last updated: <span id="last-update-time">{{ last_update|date:"F j, Y, g:i a" }}</span></span>
-                <span id="refresh-status"></span>
-                <span>Auto-refresh: <span id="countdown">60</span> seconds</span>
+<div class="filters mb-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label text-muted small">SPORT</label>
+                    <select class="form-select" id="sport-filter">
+                        <option value="all" selected>All Sports</option>
+                        {% for sport in sports %}
+                            <option value="{{ sport.key }}">{{ sport.name }}</option>
+                        {% empty %}
+                            <option value="nba">NBA</option>
+                            <option value="nhl">NHL</option>
+                            <option value="ncaab">NCAA Basketball</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label text-muted small">BOOKMAKERS</label>
+                    <div id="bookmaker-filter-list" class="dropdown-check-list">
+                        <span class="anchor">All Bookmakers <span class="selected-count">0</span></span>
+                        <ul class="items">
+                            <li>
+                                <label>
+                                    <input type="checkbox" value="all" checked /> Select All
+                                </label>
+                            </li>
+                            {% for bookmaker in bookmakers %}
+                                <li>
+                                    <label>
+                                        <input type="checkbox" value="{{ bookmaker }}" /> {{ bookmaker }}
+                                    </label>
+                                </li>
+                            {% empty %}
+                                <li><label><input type="checkbox" value="DraftKings" /> DraftKings</label></li>
+                                <li><label><input type="checkbox" value="FanDuel" /> FanDuel</label></li>
+                                <li><label><input type="checkbox" value="BetMGM" /> BetMGM</label></li>
+                                <li><label><input type="checkbox" value="Caesars" /> Caesars</label></li>
+                                <li><label><input type="checkbox" value="PointsBet" /> PointsBet</label></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label text-muted small">MIN VALUE</label>
+                    <select class="form-select" id="value-filter">
+                        <option value="all" selected>Any Value</option>
+                        <option value="1.03">3%+ Edge</option>
+                        <option value="1.05">5%+ Edge</option>
+                        <option value="1.10">10%+ Edge</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small">SORT BY</label>
+                    <select class="form-select" id="sort-by">
+                        <option value="value" selected>Highest Value</option>
+                        <option value="time">Soonest Start</option>
+                        <option value="bet">Largest Bet Size</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -24,57 +108,160 @@
 
 <div id="value-bets-container">
     {% if games %}
-        {% for game in games %}
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">{{ game.title }}</h5>
-                    <small>{{ game.commence_time|date:"F j, Y, g:i a" }}</small>
+        <div class="row">
+            <div class="col-md-4 mb-4">
+                <div class="stats-card card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="stats-icon me-3 bg-primary-light rounded-circle p-3">
+                                <i class="fas fa-percentage text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 text-muted">Total Value Bets</h6>
+                                <h3 class="mb-0">{{ total_value_bets|default:"0" }}</h3>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-primary" style="width: 100%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        {% for bet in game.value_bets.all %}
-                            <div class="col-md-6 mb-3">
-                                <div class="card h-100 {% if bet.is_high_value %}border-danger{% elif bet.is_good_value %}border-success{% endif %}">
-                                    <div class="card-header {% if bet.is_high_value %}bg-danger text-white{% elif bet.is_good_value %}bg-success text-white{% endif %}">
-                                        <h6 class="mb-0">{{ bet.bookmaker }}</h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <ul class="list-group list-group-flush">
-                                            <li class="list-group-item">
-                                                <strong>Bet Type:</strong> {{ bet.bet_type|title }} ({% if bet.bet_type == 'home' %}{{ game.home_team }}{% else %}{{ game.away_team }}{% endif %})
-                                            </li>
-                                            <li class="list-group-item">
-                                                <strong>True Probability:</strong> {{ bet.true_prob_percent }}
-                                            </li>
-                                            <li class="list-group-item">
-                                                <strong>Bookmaker Odds:</strong> {{ bet.offered_odds|floatformat:2 }}
-                                            </li>
-                                            <li class="list-group-item">
-                                                <strong>Expected Value:</strong> {{ bet.expected_value|floatformat:3 }}
-                                            </li>
-                                            <li class="list-group-item">
-                                                <strong>Recommended Bet:</strong> ${{ bet.bet_size }}
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="card-footer">
-                                        {% if bet.is_high_value %}
-                                            <div class="text-danger fw-bold">🔥 HIGH VALUE BET!</div>
-                                        {% elif bet.is_good_value %}
-                                            <div class="text-success fw-bold">✅ GOOD VALUE</div>
-                                        {% endif %}
-                                    </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="stats-card card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="stats-icon me-3 bg-success-light rounded-circle p-3">
+                                <i class="fas fa-arrow-trend-up text-success"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 text-muted">High Value Bets</h6>
+                                <h3 class="mb-0">{{ high_value_count|default:"0" }}</h3>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-success" style="width: {{ high_value_count|default:0|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4 mb-4">
+                <div class="stats-card card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="stats-icon me-3 bg-warning-light rounded-circle p-3">
+                                <i class="fas fa-dollar-sign text-warning"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 text-muted">Avg. Bet Size</h6>
+                                <h3 class="mb-0">${{ avg_bet_size|default:"15" }}</h3>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-warning" style="width: {{ avg_bet_size|default:15|floatformat:0 }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="bets-count" class="mb-4">
+            <span class="badge bg-primary rounded-pill">
+                <i class="fas fa-list me-1"></i> Showing <span id="visible-bets-count">{{ total_value_bets }}</span> of {{ total_value_bets }} value bets
+            </span>
+        </div>
+        
+        {% for game in games %}
+            <div class="game-card mb-4" data-game-id="{{ game.id }}" data-sport="{{ game.sport.key }}">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">{{ game.title }}</h5>
+                                <div class="d-flex align-items-center">
+                                    <i class="far fa-clock me-2"></i>
+                                    <small>{{ game.commence_time|date:"F j, Y, g:i a" }}</small>
                                 </div>
                             </div>
-                        {% endfor %}
+                            <div class="d-none d-md-block">
+                                <span class="badge rounded-pill bg-light text-dark">
+                                    <i class="fas fa-basketball me-1"></i>{{ game.sport.name }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for bet in game.value_bets.all %}
+                                <div class="col-md-6 mb-3 bet-card" 
+                                     data-bookmaker="{{ bet.bookmaker }}" 
+                                     data-value="{{ bet.expected_value }}" 
+                                     data-bet-size="{{ bet.bet_size }}">
+                                    <div class="card value-bet-card h-100 {% if bet.is_high_value %}border-danger{% elif bet.is_good_value %}border-success{% endif %}">
+                                        <div class="card-header d-flex justify-content-between {% if bet.is_high_value %}bg-danger text-white{% elif bet.is_good_value %}bg-success text-white{% endif %}">
+                                            <h6 class="mb-0">{{ bet.bookmaker }}</h6>
+                                            <div>
+                                                <span class="badge bg-white text-dark">
+                                                    {% if bet.is_high_value %}
+                                                        <i class="fas fa-fire text-danger me-1"></i> HIGH VALUE
+                                                    {% elif bet.is_good_value %}
+                                                        <i class="fas fa-check text-success me-1"></i> GOOD VALUE
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <strong>Bet Type:</strong> 
+                                                    <span class="badge bg-light text-dark">
+                                                        {{ bet.bet_type|title }} ({% if bet.bet_type == 'home' %}{{ game.home_team }}{% else %}{{ game.away_team }}{% endif %})
+                                                    </span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <strong>True Probability:</strong> 
+                                                    <span>{{ bet.true_prob_percent }}</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <strong>Bookmaker Odds:</strong> 
+                                                    <span>{{ bet.offered_odds|floatformat:2 }}</span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <strong>Expected Value:</strong> 
+                                                    <span class="{% if bet.expected_value > 1.05 %}text-danger fw-bold{% elif bet.expected_value > 1.00 %}text-success fw-bold{% endif %}">
+                                                        {{ bet.expected_value|floatformat:3 }}
+                                                    </span>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <strong>Recommended Bet:</strong> 
+                                                    <span class="fw-bold">${{ bet.bet_size }}</span>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                        <div class="card-footer text-center">
+                                            <button class="btn btn-sm btn-outline-primary place-bet-btn">
+                                                <i class="fas fa-external-link-alt me-1"></i> Place Bet
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
         {% endfor %}
     {% else %}
         <div class="alert alert-warning">
-            <h4 class="alert-heading">No Value Bets Found</h4>
-            <p>No value bets meeting the threshold criteria were found at this time. Try again later or adjust your threshold settings.</p>
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">No Value Bets Found</h4>
+                    <p class="mb-0">No value bets meeting the threshold criteria were found at this time. Try again later or adjust your threshold settings.</p>
+                </div>
+            </div>
         </div>
     {% endif %}
 </div>
@@ -83,4 +270,161 @@
 {% block scripts %}
 {% load static %}
 <script src="{% static 'js/refresh.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Handle checkbox dropdown
+    document.addEventListener('DOMContentLoaded', function() {
+        const checkList = document.getElementById('bookmaker-filter-list');
+        const anchor = checkList.querySelector('.anchor');
+        const items = checkList.querySelector('.items');
+        const allCheckbox = document.getElementById('select-all-bookmakers');
+        const checkboxes = items.querySelectorAll('input[type="checkbox"]:not(#select-all-bookmakers)');
+        const selectedCount = document.getElementById('selected-count');
+        
+        // Toggle dropdown visibility with animation
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (items.style.display === 'block') {
+                // Close dropdown
+                items.style.opacity = '0';
+                items.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    items.style.display = 'none';
+                    anchor.classList.remove('anchor-selected');
+                }, 200);
+            } else {
+                // Open dropdown
+                items.style.display = 'block';
+                items.style.opacity = '0';
+                items.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    items.style.opacity = '1';
+                    items.style.transform = 'translateY(0)';
+                    anchor.classList.add('anchor-selected');
+                }, 10);
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!checkList.contains(e.target) && items.style.display === 'block') {
+                items.style.opacity = '0';
+                items.style.transform = 'translateY(-10px)';
+                
+                setTimeout(() => {
+                    items.style.display = 'none';
+                    anchor.classList.remove('anchor-selected');
+                }, 200);
+            }
+        });
+        
+        // Prevent dropdown from closing when clicking inside
+        items.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        // Handle "Select All" checkbox
+        allCheckbox.addEventListener('change', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = allCheckbox.checked;
+            });
+            updateSelectedCount();
+        });
+        
+        // Handle individual checkboxes
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateSelectedCount();
+                
+                // Update "Select All" checkbox
+                if (!this.checked) {
+                    allCheckbox.checked = false;
+                } else {
+                    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                    allCheckbox.checked = allChecked;
+                }
+            });
+        });
+        
+        // Update the selected count badge
+        function updateSelectedCount() {
+            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+            selectedCount.textContent = checkedCount;
+            
+            if (checkedCount === 0) {
+                selectedCount.style.display = 'none';
+            } else {
+                selectedCount.style.display = 'inline-block';
+            }
+        }
+        
+        // Initialize selected count
+        updateSelectedCount();
+    });
+
+    // Filter the bets based on selected bookmakers
+    function filterBets() {
+        const bookmakers = Array.from(document.querySelectorAll('.items input[type="checkbox"]:not(#select-all-bookmakers):checked'))
+            .map(cb => cb.value);
+        
+        const cards = document.querySelectorAll('.game-card');
+        let visibleCount = 0;
+        
+        cards.forEach(card => {
+            const cardBookmaker = card.getAttribute('data-bookmaker');
+            
+            if (bookmakers.length === 0 || bookmakers.includes(cardBookmaker)) {
+                card.style.display = 'block';
+                visibleCount++;
+                
+                // Add a subtle animation
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(10px)';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, Math.random() * 200); // Stagger the animations
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Update the visible bet count
+        const betsCount = document.getElementById('bets-count');
+        if (betsCount) {
+            betsCount.textContent = `Showing ${visibleCount} value ${visibleCount === 1 ? 'bet' : 'bets'}`;
+        }
+    }
+    
+    // Add event listeners for filter controls
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filter when checkboxes change
+        const checkboxes = document.querySelectorAll('.items input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', filterBets);
+        });
+        
+        // Apply initial filtering
+        filterBets();
+    });
+    
+    // Filters functionality
+    $('#sport-filter, #value-filter, #sort-by').on('change', function() {
+        filterBets();
+    });
+    
+    // Place bet button functionality
+    $('.place-bet-btn').on('click', function(e) {
+        e.preventDefault();
+        var bookmaker = $(this).closest('.bet-card').data('bookmaker');
+        var betType = $(this).closest('.value-bet-card').find('.list-group-item:first-child .badge').text();
+        
+        showToast('Betting Action', `You would be redirected to ${bookmaker} to place a bet on ${betType}`, 'info');
+    });
+});
+</script>
 {% endblock %} 
