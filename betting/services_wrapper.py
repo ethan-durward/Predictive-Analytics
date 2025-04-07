@@ -8,7 +8,8 @@ def update_value_bets_wrapper():
     between what calculate_averages returns and what update_value_bets expects
     """
     api_key = os.getenv('ODDS_API_KEY')
-    threshold = float(os.getenv('THRESHOLD', '0.03'))  # Default to 3% if not set
+    threshold = float(os.getenv('THRESHOLD', '-0.1'))  # Default to -10% (90% EV) if not set
+    print(f"Using threshold value: {threshold}")
     sports_list = os.getenv('SPORTS_LIST', '').split(' ')
     
     key_to_sport = {

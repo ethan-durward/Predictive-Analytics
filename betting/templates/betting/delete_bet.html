@@ -1,0 +1,68 @@
+{% extends 'betting/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-trash me-2"></i>Delete Bet</h1>
+        <p class="text-muted">Confirm deletion of this bet</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Are you sure?</h5>
+            </div>
+            <div class="card-body">
+                <p>Are you sure you want to delete this bet? This action cannot be undone.</p>
+                
+                <div class="alert alert-light mb-4">
+                    <div class="mb-3">
+                        <strong>Game:</strong> 
+                        {% if bet.game %}
+                            {{ bet.game.title }}
+                        {% else %}
+                            <span class="text-muted">Game removed</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Bet Type:</strong> {{ bet.bet_type|title }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Bookmaker:</strong> {{ bet.bookmaker }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Odds:</strong> {{ bet.odds|floatformat:2 }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Stake:</strong> ${{ bet.stake|floatformat:2 }}
+                    </div>
+                    <div>
+                        <strong>Status:</strong> 
+                        {% if bet.status == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif bet.status == 'won' %}
+                            <span class="badge bg-success">Won</span>
+                        {% elif bet.status == 'lost' %}
+                            <span class="badge bg-danger">Lost</span>
+                        {% elif bet.status == 'push' %}
+                            <span class="badge bg-secondary">Push</span>
+                        {% else %}
+                            <span class="badge bg-info">{{ bet.status|title }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger">Delete Bet</button>
+                        <a href="{% url 'betting:my_bets' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

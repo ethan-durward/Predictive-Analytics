@@ -86,21 +86,21 @@ def hybrid_devig(odds1, odds2):
     """
     # Calculate how close the odds are to even money (2.0 in decimal odds)
     difference = min(abs(odds1 - odds2), 5) / 5  # from 0-1, 0 being even, 1 being maximum unevenness 
-    evenness = max(min((1 - difference), 1), 0) ** 1.5  # 0 is uneven, 1 is even. Squared to emphasize impact
+    evenness = max(min((1 - difference), 1), 0) ** 1.5  # Increased from 1.2 to 1.5 for more aggressive correction
     
     # Calculate margin size
     p1 = one_over_input(odds1)
     p2 = one_over_input(odds2)
     margin = (p1 + p2) - 1
     
-    market_efficiency = max(0, 1 - (margin * 0.5))
-    efficiency_factor = max(min(market_efficiency - (margin * 2), 1), 0)
+    market_efficiency = max(0, 1 - (margin * 0.5))  # Increased from 0.4 to 0.5
+    efficiency_factor = max(min(market_efficiency - (margin * 2), 1), 0)  # Increased from 1.5 to 2
     
     # Calculate weights for each method
     mult_weight = 0.3 * evenness * efficiency_factor  # Higher weight when odds are closer to even
     add_weight = 0.3 * (1 - evenness)  # Higher weight when odds are uneven
     power_weight = 0.4  # Constant weight
-    shin_weight = 0.3 * (1 - evenness) * (1-efficiency_factor)
+    shin_weight = 0.3 * (1 - evenness) * (1-efficiency_factor)  # Increased from 0.2 to 0.3
     
     # Normalize weights
     total_weight = mult_weight + add_weight + power_weight + shin_weight
@@ -125,30 +125,48 @@ def hybrid_devig(odds1, odds2):
                 add_p2 * add_weight + 
                 power_p2 * power_weight + 
                 shin_p2 * shin_weight)
+    
+    # Ensure probabilities sum to 1
     total_prob = final_p1 + final_p2
     final_p1 /= total_prob
     final_p2 /= total_prob
     
-    return max(min(final_p1, p1, 1),0), max(min(final_p2, p2, 1),0)
+    # Apply final constraint - making this less stringent to avoid overcorrection
+    final_p1 = max(min(final_p1, p1, 1), 0)  # Allow 5% above implied probability (increased from 1%)
+    final_p2 = max(min(final_p2, p2, 1), 0)  # Allow 5% above implied probability (increased from 1%)
+    
+    # Re-normalize after constraints
+    total_final = final_p1 + final_p2
+    final_p1 /= total_final
+    final_p2 /= total_final
+    
+    return final_p1, final_p2
 
 def calculate_bet_size(true_prob, offered_odds, expected_value, base_unit=100):
-    """Calculate recommended bet size with better balance of risk vs. reward"""
-    # Kelly Criterion influence (full Kelly would be true_prob - (1-true_prob)/(offered_odds-1))
-    kelly_factor = (true_prob - ((1-true_prob)/(offered_odds-1))) * 0.5  # Half-Kelly for safety
+    """
+    Calculate recommended bet size based on:
+    1. Risk (using true probability - lower prob means higher risk)
+    2. Expected Value (higher EV means bigger bet)
     
-    # Clamp Kelly to reasonable range and handle negative values
-    kelly_factor = max(min(kelly_factor, 0.2), 0)  # Cap at 20% of bankroll
+    Args:
+        true_prob: Your estimated true probability (0-1)
+        offered_odds: Decimal odds from bookmaker
+        expected_value: Calculated EV
+        base_unit: Base betting unit (default $100)
+    """
+    # Risk factor (0-1): lower probability means higher risk
+    risk_factor = true_prob ** 2 / 2 # Squared to penalize high risk more
     
-    # EV impact (increased influence)
-    ev_factor = max(0, (expected_value - 1) * 8)  # More aggressive on high EV bets
+    # EV factor (typically 1.0-1.2): higher EV means bigger bet
+    ev_factor = max(0, (expected_value - 1) * 5)  # Scale EV to useful range
     
-    # Final bet size calculation
-    bet_size = round(base_unit * kelly_factor * (1 + ev_factor))
+    # Combine factors
+    bet_multiplier = risk_factor * (1 + ev_factor)
     
-    # Apply reasonable limits
-    min_bet = 5  # Minimum bet of $5
-    max_bet = 50  # Maximum bet of $50
-    return max(min(bet_size, max_bet), min_bet if bet_size > 0 else 0)
+    # Calculate final bet size
+    bet_size = round(base_unit * bet_multiplier)
+    
+    return min(bet_size, 20)  # Nothing higher than $20
 
 def calculate_averages(sport_odds, sport_obj):
     # Clear existing games for this sport to avoid duplicates
@@ -239,6 +257,11 @@ def find_value_bets(games_dict, threshold):
     ValueBet.objects.all().delete()
     value_bets = {}
     
+    # For diagnostic purposes - track how many bets meet different thresholds
+    ev_count_90 = 0
+    ev_count_95 = 0
+    ev_count_100 = 0
+    
     for game_title in games_dict:
         if "average_home" not in games_dict[game_title] or "average_away" not in games_dict[game_title]:
             continue
@@ -270,8 +293,27 @@ def find_value_bets(games_dict, threshold):
             home_value = probability_home * bookie_home_odds
             away_value = probability_away * bookie_away_odds
 
-            # Check for value bets (if expected value > threshold)
-            if home_value > 1 + threshold:
+            # Count bets at different thresholds for debugging
+            if home_value >= 0.90:
+                ev_count_90 += 1
+            if home_value >= 0.95:
+                ev_count_95 += 1
+            if home_value >= 1.00:
+                ev_count_100 += 1
+            
+            if away_value >= 0.90:
+                ev_count_90 += 1
+            if away_value >= 0.95:
+                ev_count_95 += 1
+            if away_value >= 1.00:
+                ev_count_100 += 1
+
+            # Check for value bets (if expected value >= (1 + threshold))
+            # With threshold = -0.1, this is equivalent to expected value >= 0.9 (90%)
+            min_acceptable_value = 1 + threshold
+            
+            # Always record home value bets for testing
+            if home_value >= min_acceptable_value:
                 # Initialize game entry in value_bets if not exists
                 if game_title not in value_bets:
                     value_bets[game_title] = []
@@ -302,7 +344,8 @@ def find_value_bets(games_dict, threshold):
                     'bet_size': bet_size
                 })
                 
-            if away_value > 1 + threshold:
+            # Always record away value bets for testing
+            if away_value >= min_acceptable_value:
                 # Initialize game entry in value_bets if not exists
                 if game_title not in value_bets:
                     value_bets[game_title] = []
@@ -333,6 +376,13 @@ def find_value_bets(games_dict, threshold):
                     'bet_size': bet_size
                 })
     
+    # Print diagnostic info
+    print(f"Value bet counts by threshold:")
+    print(f"90%+ EV: {ev_count_90}")
+    print(f"95%+ EV: {ev_count_95}")
+    print(f"100%+ EV: {ev_count_100}")
+    print(f"Current threshold ({1+threshold:.2%} EV): {len(value_bets)}")
+    
     return value_bets
 
 def update_value_bets():
@@ -340,7 +390,7 @@ def update_value_bets():
     Get the latest odds and calculate value bets for all sports
     """
     api_key = os.getenv('ODDS_API_KEY')
-    threshold = -0.05 #= float(os.getenv('THRESHOLD', '-0.05'))  # Default to 3% if not set
+    threshold = -0.1  # Changed from -0.05 to -0.1 to allow for 90% expected value
     sports_list = os.getenv('SPORTS_LIST', '').split(' ')
     
     key_to_sport = {

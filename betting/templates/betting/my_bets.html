@@ -1,0 +1,229 @@
+{% extends 'betting/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-ticket-alt me-2"></i>My Bets</h1>
+        <p class="text-muted">Track your placed bets and their performance</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-primary-light rounded-circle p-3">
+                        <i class="fas fa-ticket-alt text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Total Bets</h6>
+                        <h3 class="mb-0">{{ summary.total_bets }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-warning-light rounded-circle p-3">
+                        <i class="fas fa-hourglass-half text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Pending</h6>
+                        <h3 class="mb-0">{{ summary.pending_bets }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 {% if summary.profit_loss > 0 %}bg-success-light{% else %}bg-danger-light{% endif %} rounded-circle p-3">
+                        <i class="fas fa-dollar-sign {% if summary.profit_loss > 0 %}text-success{% else %}text-danger{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Profit/Loss</h6>
+                        <h3 class="mb-0 {% if summary.profit_loss > 0 %}text-success{% elif summary.profit_loss < 0 %}text-danger{% endif %}">
+                            ${{ summary.profit_loss|floatformat:2 }}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-info-light rounded-circle p-3">
+                        <i class="fas fa-percentage text-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">ROI</h6>
+                        <h3 class="mb-0 {% if summary.roi > 0 %}text-success{% elif summary.roi < 0 %}text-danger{% endif %}">
+                            {{ summary.roi|floatformat:2 }}%
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Bets -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-hourglass-half me-2"></i>Pending Bets</h5>
+        <span class="badge rounded-pill bg-warning">{{ pending_bets.count }}</span>
+    </div>
+    
+    {% if pending_bets %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Game</th>
+                    <th>Bet Type</th>
+                    <th>Bookmaker</th>
+                    <th>Odds</th>
+                    <th>Stake</th>
+                    <th>Expected Value</th>
+                    <th>Placed</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in pending_bets %}
+                <tr>
+                    <td>
+                        {% if bet.game %}
+                            <strong>{{ bet.game.title }}</strong><br>
+                            <small class="text-muted">{{ bet.game.commence_time|date:"M d, g:i a" }}</small>
+                        {% else %}
+                            <span class="text-muted">Game removed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ bet.bet_type|title }}</td>
+                    <td>{{ bet.bookmaker }}</td>
+                    <td>{{ bet.odds|floatformat:2 }}</td>
+                    <td>${{ bet.stake|floatformat:2 }}</td>
+                    <td class="{% if bet.expected_value > 1.05 %}text-danger{% elif bet.expected_value > 1.0 %}text-success{% endif %}">
+                        {{ bet.expected_value|floatformat:3 }}
+                    </td>
+                    <td>{{ bet.placed_at|date:"M d, g:i a" }}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'betting:update_bet_result' bet.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'betting:delete_bet' bet.id %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center p-5">
+        <div class="text-muted mb-3">
+            <i class="fas fa-ticket-alt fa-3x mb-3"></i>
+            <h5>No Pending Bets</h5>
+            <p>You don't have any pending bets at the moment.</p>
+        </div>
+        <a href="{% url 'betting:home' %}" class="btn btn-primary">Find Value Bets</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Settled Bets -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Settled Bets</h5>
+        <span class="badge rounded-pill bg-primary">{{ settled_bets.count }}</span>
+    </div>
+    
+    {% if settled_bets %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Game</th>
+                    <th>Bet Type</th>
+                    <th>Bookmaker</th>
+                    <th>Odds</th>
+                    <th>Stake</th>
+                    <th>Result</th>
+                    <th>Profit/Loss</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bet in settled_bets %}
+                <tr>
+                    <td>
+                        {% if bet.game %}
+                            <strong>{{ bet.game.title }}</strong><br>
+                            <small class="text-muted">{{ bet.game.commence_time|date:"M d, g:i a" }}</small>
+                        {% else %}
+                            <span class="text-muted">Game removed</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ bet.bet_type|title }}</td>
+                    <td>{{ bet.bookmaker }}</td>
+                    <td>{{ bet.odds|floatformat:2 }}</td>
+                    <td>${{ bet.stake|floatformat:2 }}</td>
+                    <td>
+                        {% if bet.status == 'won' %}
+                            <span class="badge bg-success">Won</span>
+                        {% elif bet.status == 'lost' %}
+                            <span class="badge bg-danger">Lost</span>
+                        {% elif bet.status == 'push' %}
+                            <span class="badge bg-secondary">Push</span>
+                        {% else %}
+                            <span class="badge bg-info">{{ bet.status|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="{% if bet.profit_loss > 0 %}text-success{% elif bet.profit_loss < 0 %}text-danger{% else %}text-muted{% endif %}">
+                        {% if bet.profit_loss %}
+                            ${{ bet.profit_loss|floatformat:2 }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'betting:update_bet_result' bet.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'betting:delete_bet' bet.id %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body text-center p-5">
+        <div class="text-muted mb-3">
+            <i class="fas fa-history fa-3x mb-3"></i>
+            <h5>No Settled Bets</h5>
+            <p>Your settled bets will appear here after you update their results.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

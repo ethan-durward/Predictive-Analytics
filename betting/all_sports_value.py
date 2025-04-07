@@ -162,23 +162,30 @@ def hybrid_devig(odds1, odds2):
     return max(min(final_p1, p1, 1),0), max(min(final_p2, p2, 1),0)
 
 def calculate_bet_size(true_prob, offered_odds, expected_value, base_unit=100):
-    """Calculate recommended bet size with better balance of risk vs. reward"""
-    # Kelly Criterion influence (full Kelly would be true_prob - (1-true_prob)/(offered_odds-1))
-    kelly_factor = (true_prob - ((1-true_prob)/(offered_odds-1))) * 0.5  # Half-Kelly for safety
+    """
+    Calculate recommended bet size based on:
+    1. Risk (using true probability - lower prob means higher risk)
+    2. Expected Value (higher EV means bigger bet)
     
-    # Clamp Kelly to reasonable range and handle negative values
-    kelly_factor = max(min(kelly_factor, 0.2), 0)  # Cap at 20% of bankroll
+    Args:
+        true_prob: Your estimated true probability (0-1)
+        offered_odds: Decimal odds from bookmaker
+        expected_value: Calculated EV
+        base_unit: Base betting unit (default $100)
+    """
+    # Risk factor (0-1): lower probability means higher risk
+    risk_factor = true_prob ** 2  # Squared to penalize high risk more
     
-    # EV impact (increased influence)
-    ev_factor = max(0, (expected_value - 1) * 8)  # More aggressive on high EV bets
+    # EV factor (typically 1.0-1.2): higher EV means bigger bet
+    ev_factor = max(0, (expected_value - 1) * 5)  # Scale EV to useful range
     
-    # Final bet size calculation
-    bet_size = round(base_unit * kelly_factor * (1 + ev_factor))
+    # Combine factors
+    bet_multiplier = risk_factor * (1 + ev_factor)
     
-    # Apply reasonable limits
-    min_bet = 5  # Minimum bet of $5
-    max_bet = 50  # Maximum bet of $50
-    return max(min(bet_size, max_bet), min_bet if bet_size > 0 else 0)
+    # Calculate final bet size
+    bet_size = round(base_unit * bet_multiplier)
+    
+    return min(bet_size, 20)  # Nothing higher than $20
 
 def get_gmail_service():
     """Gets Gmail API service instance."""

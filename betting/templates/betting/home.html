@@ -86,12 +86,11 @@
                 </div>
                 <div class="col-md-3 mb-3 mb-md-0">
                     <label class="form-label text-muted small">MIN VALUE</label>
-                    <select class="form-select" id="value-filter">
-                        <option value="all" selected>Any Value</option>
-                        <option value="1.03">3%+ Edge</option>
-                        <option value="1.05">5%+ Edge</option>
-                        <option value="1.10">10%+ Edge</option>
-                    </select>
+                    <div class="input-group">
+                        <input type="number" class="form-control" id="value-filter" value="{{ edge_threshold|floatformat:-0 }}" min="90" max="150" step="1">
+                        <span class="input-group-text" data-bs-toggle="tooltip" title="Values above 100% indicate positive expected value">%</span>
+                    </div>
+                    <small class="form-text text-muted">Min value threshold (100% = no edge, 90% for testing)</small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label text-muted small">SORT BY</label>
@@ -171,6 +170,43 @@
             <span class="badge bg-primary rounded-pill">
                 <i class="fas fa-list me-1"></i> Showing <span id="visible-bets-count">{{ total_value_bets }}</span> of {{ total_value_bets }} value bets
             </span>
+            
+            <!-- Debug Information -->
+            <div id="debug-info" class="mt-2 small text-muted">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="show-debug-info">
+                    <label class="form-check-label" for="show-debug-info">Show Debug Info</label>
+                </div>
+                <div id="debug-details" style="display: none;">
+                    <div class="card mt-2">
+                        <div class="card-body">
+                            <h6 class="card-title">Value Bet Distribution</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Threshold</th>
+                                    <th>Count</th>
+                                </tr>
+                                <tr>
+                                    <td>90%+ EV</td>
+                                    <td id="debug-ev-90">{{ debug.ev_90_plus|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>95%+ EV</td>
+                                    <td id="debug-ev-95">{{ debug.ev_95_plus|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>100%+ EV</td>
+                                    <td id="debug-ev-100">{{ debug.ev_100_plus|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Current Threshold</td>
+                                    <td id="debug-threshold">{{ debug.threshold_used|default:"-" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         {% for game in games %}
@@ -194,7 +230,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            {% for bet in game.value_bets.all %}
+                            {% for bet in game.filtered_value_bets %}
                                 <div class="col-md-6 mb-3 bet-card" 
                                      data-bookmaker="{{ bet.bookmaker }}" 
                                      data-value="{{ bet.expected_value }}" 
@@ -241,7 +277,10 @@
                                             </ul>
                                         </div>
                                         <div class="card-footer text-center">
-                                            <button class="btn btn-sm btn-outline-primary place-bet-btn">
+                                            <button class="btn btn-sm btn-outline-primary place-bet-btn" 
+                                                   data-bet-id="{{ bet.id }}"
+                                                   data-bookmaker="{{ bet.bookmaker }}" 
+                                                   data-bet-type="{{ bet.bet_type }}">
                                                 <i class="fas fa-external-link-alt me-1"></i> Place Bet
                                             </button>
                                         </div>
@@ -272,14 +311,69 @@
 <script src="{% static 'js/refresh.js' %}"></script>
 <script>
 $(document).ready(function() {
+    // Initialize countdown timer
+    let countdown = 60;
+    
+    // Start countdown timer
+    function startCountdown() {
+        countdown = 60;
+        updateCountdown();
+        
+        function updateCountdown() {
+            $('#countdown').text(countdown);
+            
+            if (countdown <= 0) {
+                refreshData();
+            } else {
+                countdown--;
+                setTimeout(updateCountdown, 1000);
+            }
+        }
+    }
+    
+    // Start the countdown when page loads
+    startCountdown();
+    
+    // Add toast function
+    function showToast(title, message, type) {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type} show`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        // Set the inner HTML
+        toast.innerHTML = `
+            <div class="toast-header">
+                <strong class="me-auto">${title}</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">${message}</div>
+        `;
+        
+        // Add to container
+        const toastContainer = document.getElementById('toast-container');
+        if (toastContainer) {
+            toastContainer.appendChild(toast);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toastContainer.removeChild(toast);
+                }, 300);
+            }, 5000);
+        }
+    }
+    
     // Handle checkbox dropdown
-    document.addEventListener('DOMContentLoaded', function() {
-        const checkList = document.getElementById('bookmaker-filter-list');
+    const checkList = document.getElementById('bookmaker-filter-list');
+    if (checkList) {
         const anchor = checkList.querySelector('.anchor');
         const items = checkList.querySelector('.items');
-        const allCheckbox = document.getElementById('select-all-bookmakers');
-        const checkboxes = items.querySelectorAll('input[type="checkbox"]:not(#select-all-bookmakers)');
-        const selectedCount = document.getElementById('selected-count');
+        const checkboxes = items.querySelectorAll('input[type="checkbox"]:not([value="all"])');
+        const selectAllCheckbox = items.querySelector('input[value="all"]');
         
         // Toggle dropdown visibility with animation
         anchor.addEventListener('click', function(e) {
@@ -327,12 +421,15 @@ $(document).ready(function() {
         });
         
         // Handle "Select All" checkbox
-        allCheckbox.addEventListener('change', function() {
-            checkboxes.forEach(cb => {
-                cb.checked = allCheckbox.checked;
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                });
+                updateSelectedCount();
+                filterBets();
             });
-            updateSelectedCount();
-        });
+        }
         
         // Handle individual checkboxes
         checkboxes.forEach(checkbox => {
@@ -340,90 +437,305 @@ $(document).ready(function() {
                 updateSelectedCount();
                 
                 // Update "Select All" checkbox
-                if (!this.checked) {
-                    allCheckbox.checked = false;
-                } else {
+                if (!this.checked && selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                } else if (selectAllCheckbox) {
                     const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                    allCheckbox.checked = allChecked;
+                    selectAllCheckbox.checked = allChecked;
                 }
+                
+                filterBets();
             });
         });
         
         // Update the selected count badge
         function updateSelectedCount() {
-            const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-            selectedCount.textContent = checkedCount;
-            
-            if (checkedCount === 0) {
-                selectedCount.style.display = 'none';
-            } else {
-                selectedCount.style.display = 'inline-block';
+            const selectedCountEl = anchor.querySelector('.selected-count');
+            if (selectedCountEl) {
+                const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+                selectedCountEl.textContent = checkedCount;
+                
+                if (checkedCount === 0) {
+                    selectedCountEl.style.display = 'none';
+                } else {
+                    selectedCountEl.style.display = 'inline-block';
+                }
             }
         }
         
         // Initialize selected count
         updateSelectedCount();
-    });
+    }
 
-    // Filter the bets based on selected bookmakers
+    // Function to filter bets based on selected criteria
     function filterBets() {
-        const bookmakers = Array.from(document.querySelectorAll('.items input[type="checkbox"]:not(#select-all-bookmakers):checked'))
+        const sport = $('#sport-filter').val();
+        const minValuePercent = parseFloat($('#value-filter').val()) || 100;
+        // Convert percentage to decimal for filtering (e.g., 105% -> 1.05)
+        const minValue = minValuePercent / 100;
+        const sortBy = $('#sort-by').val();
+        
+        // Get selected bookmakers
+        const selectedBookmakers = Array.from(document.querySelectorAll('.items input[type="checkbox"]:not([value="all"]):checked'))
             .map(cb => cb.value);
         
-        const cards = document.querySelectorAll('.game-card');
-        let visibleCount = 0;
-        
-        cards.forEach(card => {
-            const cardBookmaker = card.getAttribute('data-bookmaker');
+        $('.bet-card').each(function() {
+            const betValue = parseFloat($(this).data('value'));
+            const betBookmaker = $(this).data('bookmaker');
+            const gameCard = $(this).closest('.game-card');
+            const gameSport = gameCard.data('sport');
             
-            if (bookmakers.length === 0 || bookmakers.includes(cardBookmaker)) {
-                card.style.display = 'block';
-                visibleCount++;
-                
-                // Add a subtle animation
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(10px)';
-                
-                setTimeout(() => {
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateY(0)';
-                }, Math.random() * 200); // Stagger the animations
+            // Check if bet meets all criteria
+            const valueMatch = betValue >= minValue;
+            const sportMatch = sport === 'all' || gameSport === sport;
+            const bookmakerMatch = selectedBookmakers.length === 0 || selectedBookmakers.includes(betBookmaker);
+            
+            // Apply filters
+            if (valueMatch && sportMatch && bookmakerMatch) {
+                $(this).show();
             } else {
-                card.style.display = 'none';
+                $(this).hide();
             }
         });
         
-        // Update the visible bet count
-        const betsCount = document.getElementById('bets-count');
-        if (betsCount) {
-            betsCount.textContent = `Showing ${visibleCount} value ${visibleCount === 1 ? 'bet' : 'bets'}`;
-        }
-    }
-    
-    // Add event listeners for filter controls
-    document.addEventListener('DOMContentLoaded', function() {
-        // Filter when checkboxes change
-        const checkboxes = document.querySelectorAll('.items input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', filterBets);
+        // Hide game cards that have no visible bets
+        $('.game-card').each(function() {
+            const visibleBets = $(this).find('.bet-card:visible').length;
+            if (visibleBets === 0) {
+                $(this).hide();
+            } else {
+                $(this).show();
+            }
         });
         
-        // Apply initial filtering
+        // Update visible bets count
+        let visibleBetsCount = $('.bet-card:visible').length;
+        $('#visible-bets-count').text(visibleBetsCount);
+        
+        // Apply sorting
+        sortBets(sortBy);
+    }
+    
+    // Function to sort bets based on selected criteria
+    function sortBets(sortBy) {
+        let gameCards = $('.game-card:visible').toArray();
+        
+        if (sortBy === 'value') {
+            gameCards.sort((a, b) => {
+                const aMaxValue = Math.max(...$(a).find('.bet-card').map(function() { 
+                    return parseFloat($(this).data('value')) || 0; 
+                }).get());
+                const bMaxValue = Math.max(...$(b).find('.bet-card').map(function() { 
+                    return parseFloat($(this).data('value')) || 0; 
+                }).get());
+                return bMaxValue - aMaxValue; // Highest first
+            });
+        } else if (sortBy === 'time') {
+            // No need to sort by time as it's the default order
+        } else if (sortBy === 'bet') {
+            gameCards.sort((a, b) => {
+                const aMaxBet = Math.max(...$(a).find('.bet-card').map(function() { 
+                    return parseFloat($(this).data('bet-size')) || 0; 
+                }).get());
+                const bMaxBet = Math.max(...$(b).find('.bet-card').map(function() { 
+                    return parseFloat($(this).data('bet-size')) || 0; 
+                }).get());
+                return bMaxBet - aMaxBet; // Largest first
+            });
+        }
+        
+        // Reappend the sorted game cards
+        const container = $('#value-bets-container');
+        $(gameCards).each(function() {
+            container.append(this);
+        });
+    }
+    
+    // Filters functionality
+    $('#sport-filter, #sort-by').on('change', function() {
         filterBets();
     });
     
-    // Filters functionality
-    $('#sport-filter, #value-filter, #sort-by').on('change', function() {
+    // Add event listener for the numerical value filter
+    $('#value-filter').on('input', function() {
         filterBets();
     });
+    
+    // Add debounced save functionality for the threshold value (for logged in users)
+    {% if user.is_authenticated %}
+    let saveThresholdTimeout;
+    $('#value-filter').on('change', function() {
+        const thresholdPercent = parseFloat($(this).val()) || 100;
+        // Convert percentage to decimal for saving (e.g., 105% -> 1.05)
+        const threshold = thresholdPercent / 100;
+        
+        // Clear any pending timeout
+        clearTimeout(saveThresholdTimeout);
+        
+        // Set a new timeout to save the value after 500ms
+        saveThresholdTimeout = setTimeout(function() {
+            $.ajax({
+                url: "{% url 'betting:save_edge_threshold' %}",
+                type: 'POST',
+                data: {
+                    'threshold': threshold,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    showToast('Settings Saved', response.message, 'success');
+                },
+                error: function(xhr) {
+                    console.error('Error saving threshold:', xhr.responseText);
+                }
+            });
+        }, 500);
+    });
+    {% endif %}
     
     // Place bet button functionality
     $('.place-bet-btn').on('click', function(e) {
         e.preventDefault();
-        var bookmaker = $(this).closest('.bet-card').data('bookmaker');
-        var betType = $(this).closest('.value-bet-card').find('.list-group-item:first-child .badge').text();
+        var bookmaker = $(this).data('bookmaker');
+        var betType = $(this).data('bet-type');
+        var betId = $(this).data('bet-id');
         
-        showToast('Betting Action', `You would be redirected to ${bookmaker} to place a bet on ${betType}`, 'info');
+        {% if user.is_authenticated %}
+            // Send Ajax request to place the bet
+            $.ajax({
+                url: "{% url 'betting:place_bet' '00000000-0000-0000-0000-000000000000' %}".replace('00000000-0000-0000-0000-000000000000', betId),
+                type: 'GET',
+                success: function(response) {
+                    showToast('Bet Placed', 'Your bet has been added to your bet slip!', 'success');
+                    // Disable the button after placing bet
+                    $(e.target).prop('disabled', true).html('<i class="fas fa-check me-1"></i> Bet Placed');
+                    
+                    // Update last update time
+                    if (response.last_update) {
+                        $('#last-update-time').text(response.last_update);
+                    }
+                    
+                    // Update stats
+                    $('#bets-count .badge').html(`<i class="fas fa-list me-1"></i> Showing <span id="visible-bets-count">${response.count}</span> of ${response.count} value bets`);
+                    
+                    // Update debug info if available
+                    if (response.debug) {
+                        $('#debug-ev-90').text(response.debug.ev_90_plus);
+                        $('#debug-ev-95').text(response.debug.ev_95_plus);
+                        $('#debug-ev-100').text(response.debug.ev_100_plus);
+                        $('#debug-threshold').text(response.debug.threshold_used.toFixed(2));
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.status === 302) {
+                        // Redirect if already placed
+                        window.location.href = "{% url 'betting:my_bets' %}";
+                    } else {
+                        showToast('Error', 'There was an error placing your bet. Please try again.', 'error');
+                    }
+                }
+            });
+        {% else %}
+            showToast('Login Required', 'Please <a href="{% url 'betting:login' %}">login</a> or <a href="{% url 'betting:register' %}">register</a> to place bets.', 'warning');
+        {% endif %}
+    });
+
+    // Debug info toggle
+    $('#show-debug-info').on('change', function() {
+        if ($(this).is(':checked')) {
+            $('#debug-details').show();
+        } else {
+            $('#debug-details').hide();
+        }
+    });
+
+    // Initialize tooltips
+    $(function () {
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
+
+    // Function to refresh data
+    function refreshData() {
+        // Reset the countdown
+        countdown = 60;
+        
+        // Update the refresh status
+        $('#refresh-status').removeClass('success error').addClass('pending').html('<i class="fas fa-sync-alt fa-spin me-2"></i> Refreshing...');
+        
+        // Get the current value filter setting
+        const valueFilterPercent = parseFloat($('#value-filter').val()) || 100;
+        const isTesting = valueFilterPercent < 100;
+        
+        console.log('Refreshing value bets with:', {
+            testing: isTesting,
+            valueFilter: valueFilterPercent
+        });
+        
+        $.ajax({
+            url: "{% url 'betting:refresh_value_bets' %}",
+            method: 'GET',
+            data: {
+                'testing': isTesting ? 'true' : ''
+            },
+            success: function(response) {
+                console.log('Refresh response:', response);
+                
+                // Update the refresh status
+                $('#refresh-status').removeClass('pending').addClass('success').html('<i class="fas fa-check-circle me-2"></i> ' + response.message);
+                
+                // Update last update time
+                $('#last-update-time').text(response.last_update);
+                
+                // Update value bet counts
+                const totalValueBets = response.count;
+                $('#bets-count .badge').html(`<i class="fas fa-list me-1"></i> Showing <span id="visible-bets-count">${totalValueBets}</span> of ${totalValueBets} value bets`);
+                
+                // Update debug info if available
+                if (response.debug) {
+                    $('#debug-ev-90').text(response.debug.ev_90_plus);
+                    $('#debug-ev-95').text(response.debug.ev_95_plus);
+                    $('#debug-ev-100').text(response.debug.ev_100_plus);
+                    $('#debug-threshold').text(response.debug.threshold_used.toFixed(2));
+                }
+                
+                // Show toast notification
+                showToast('Data Refreshed', `Found ${response.count} value bets. ${response.high_value_count} high value bets.`, 'success');
+                
+                // Reload the page to display the new bets
+                setTimeout(function() {
+                    location.reload();
+                }, 1500);
+            },
+            error: function(xhr, status, error) {
+                console.error('Refresh error:', xhr.responseText);
+                
+                // Update the refresh status
+                $('#refresh-status').removeClass('pending').addClass('error').html('<i class="fas fa-exclamation-circle me-2"></i> Error refreshing data');
+                
+                // Show error toast with more details
+                let errorMsg = 'Failed to refresh data. Please try again.';
+                if (xhr.responseText) {
+                    try {
+                        const errorData = JSON.parse(xhr.responseText);
+                        if (errorData.message) {
+                            errorMsg = errorData.message;
+                        }
+                    } catch(e) {
+                        // If can't parse JSON, use the text
+                        errorMsg = xhr.responseText.substring(0, 100) + '...';
+                    }
+                }
+                
+                showToast('Error', errorMsg, 'error');
+                
+                // Restart countdown even on error
+                startCountdown();
+            }
+        });
+    }
+
+    // Connect refresh button
+    $('#refresh-btn').on('click', function() {
+        refreshData();
     });
 });
 </script>

@@ -1,0 +1,408 @@
+{% extends 'betting/base.html' %}
+{% load bet_extras %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-chart-bar me-2"></i>Master PNL Tracker</h1>
+        <p class="text-muted">Track the performance of all value bets identified by the algorithm</p>
+    </div>
+</div>
+
+<!-- Filter Controls -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="fas fa-filter me-2"></i>Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row align-items-end">
+            <div class="col-md-3 mb-3 mb-md-0">
+                <label class="form-label">Time Period</label>
+                <select name="days" class="form-select">
+                    <option value="7" {% if days == 7 %}selected{% endif %}>Last 7 days</option>
+                    <option value="30" {% if days == 30 %}selected{% endif %}>Last 30 days</option>
+                    <option value="90" {% if days == 90 %}selected{% endif %}>Last 90 days</option>
+                    <option value="365" {% if days == 365 %}selected{% endif %}>Last year</option>
+                    <option value="999999" {% if days > 1000 %}selected{% endif %}>All time</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3 mb-md-0">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="won" {% if status_filter == 'won' %}selected{% endif %}>Won</option>
+                    <option value="lost" {% if status_filter == 'lost' %}selected{% endif %}>Lost</option>
+                    <option value="push" {% if status_filter == 'push' %}selected{% endif %}>Push</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-3 mb-md-0">
+                <label class="form-label">Bookmaker</label>
+                <select name="bookmaker" class="form-select">
+                    <option value="all" {% if bookmaker_filter == 'all' %}selected{% endif %}>All</option>
+                    {% for bookmaker in all_bookmakers %}
+                        <option value="{{ bookmaker }}" {% if bookmaker_filter == bookmaker %}selected{% endif %}>{{ bookmaker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Performance Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-primary-light rounded-circle p-3">
+                        <i class="fas fa-calculator text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Total Bets</h6>
+                        <h3 class="mb-0">{{ stats.total_bets }}</h3>
+                        <small class="text-muted">{{ stats.settled_bets }} settled</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-success-light rounded-circle p-3">
+                        <i class="fas fa-percentage text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Win Rate</h6>
+                        <h3 class="mb-0">{{ stats.win_rate|floatformat:1 }}%</h3>
+                        <small class="text-muted">vs Expected {{ stats.expected_win_rate|floatformat:1 }}%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 {% if stats.theoretical_profit > 0 %}bg-success-light{% else %}bg-danger-light{% endif %} rounded-circle p-3">
+                        <i class="fas fa-dollar-sign {% if stats.theoretical_profit > 0 %}text-success{% else %}text-danger{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Profit/Loss</h6>
+                        <h3 class="mb-0 {% if stats.theoretical_profit > 0 %}text-success{% elif stats.theoretical_profit < 0 %}text-danger{% endif %}">
+                            ${{ stats.theoretical_profit|floatformat:2 }}
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 {% if stats.roi > 0 %}bg-success-light{% else %}bg-danger-light{% endif %} rounded-circle p-3">
+                        <i class="fas fa-chart-line {% if stats.roi > 0 %}text-success{% else %}text-danger{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">ROI</h6>
+                        <h3 class="mb-0 {% if stats.roi > 0 %}text-success{% elif stats.roi < 0 %}text-danger{% endif %}">
+                            {{ stats.roi|floatformat:2 }}%
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-info-light rounded-circle p-3">
+                        <i class="fas fa-balance-scale text-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Edge Realization</h6>
+                        <h3 class="mb-0 {% if stats.edge_realization > 100 %}text-success{% elif stats.edge_realization < 80 %}text-danger{% endif %}">
+                            {{ stats.edge_realization|floatformat:1 }}%
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-warning-light rounded-circle p-3">
+                        <i class="fas fa-trophy text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">W/L/P</h6>
+                        <h3 class="mb-0">
+                            <span class="text-success">{{ stats.won_bets }}</span> / 
+                            <span class="text-danger">{{ stats.lost_bets }}</span> / 
+                            <span class="text-secondary">{{ stats.push_bets }}</span>
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-primary-light rounded-circle p-3">
+                        <i class="fas fa-money-bill-wave text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Avg. EV</h6>
+                        <h3 class="mb-0">{{ stats.avg_ev|floatformat:3 }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="stats-card card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stats-icon me-3 bg-secondary-light rounded-circle p-3">
+                        <i class="fas fa-hourglass-half text-secondary"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Pending Bets</h6>
+                        <h3 class="mb-0">{{ stats.pending_bets }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bookmaker Performance -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="fas fa-book me-2"></i>Bookmaker Performance</h5>
+        <div>
+            <a href="?{% if days %}days={{ days }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if bookmaker_filter %}bookmaker={{ bookmaker_filter }}&{% endif %}sort=profit" class="btn btn-sm {% if sort_by == 'profit' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                Sort by Profit
+            </a>
+            <a href="?{% if days %}days={{ days }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}{% if bookmaker_filter %}bookmaker={{ bookmaker_filter }}&{% endif %}sort=roi" class="btn btn-sm {% if sort_by == 'roi' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                Sort by ROI
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if bookmaker_stats %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Bookmaker</th>
+                        <th>Bets</th>
+                        <th>Wins</th>
+                        <th>Win Rate</th>
+                        <th>Avg. EV</th>
+                        <th>Profit/Loss</th>
+                        <th>Wagered</th>
+                        <th>ROI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bookmaker in bookmaker_stats %}
+                    <tr>
+                        <td>
+                            <strong>{{ bookmaker.name }}</strong>
+                            <a href="?{% if days %}days={{ days }}&{% endif %}{% if status_filter %}status={{ status_filter }}&{% endif %}bookmaker={{ bookmaker.name }}" class="ms-2 text-muted small">
+                                <i class="fas fa-filter"></i>
+                            </a>
+                        </td>
+                        <td>{{ bookmaker.total_bets }}</td>
+                        <td>{{ bookmaker.won_bets }}</td>
+                        <td>{{ bookmaker.win_rate|floatformat:1 }}%</td>
+                        <td>{{ bookmaker.avg_ev|floatformat:3 }}</td>
+                        <td class="{% if bookmaker.profit_loss > 0 %}text-success{% elif bookmaker.profit_loss < 0 %}text-danger{% endif %}">
+                            ${{ bookmaker.profit_loss|floatformat:2 }}
+                        </td>
+                        <td>${{ bookmaker.total_wagered|floatformat:2 }}</td>
+                        <td class="{% if bookmaker.roi > 0 %}text-success{% elif bookmaker.roi < 0 %}text-danger{% endif %}">
+                            {{ bookmaker.roi|floatformat:2 }}%
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <div class="text-muted">
+                <i class="fas fa-book fa-3x mb-3"></i>
+                <h5>No Bookmaker Data</h5>
+                <p>No data is available for the selected filters.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="row mb-4">
+    <div class="col-md-6 text-center">
+        <a href="{% url 'betting:update_tracker_results' %}" class="btn btn-primary">
+            <i class="fas fa-edit me-2"></i>Update Results
+        </a>
+    </div>
+    <div class="col-md-6 text-center">
+        <a href="#" class="btn btn-outline-secondary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Print Report
+        </a>
+    </div>
+</div>
+
+<!-- Value Bets List -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-list me-2"></i>Value Bets List</h5>
+    </div>
+    {% if trackers %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Game</th>
+                    <th>Bet Type</th>
+                    <th>Bookmaker</th>
+                    <th>Odds</th>
+                    <th>True Prob</th>
+                    <th>EV</th>
+                    <th>Stake</th>
+                    <th>Result</th>
+                    <th>P/L</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tracker in trackers %}
+                <tr>
+                    <td>{{ tracker.identified_at|date:"M d, Y" }}</td>
+                    <td>{% if tracker.game %}{{ tracker.game.title }}{% else %}Game removed{% endif %}</td>
+                    <td>{{ tracker.bet_type|title }}</td>
+                    <td>{{ tracker.bookmaker }}</td>
+                    <td>{{ tracker.odds|floatformat:2 }}</td>
+                    <td>{{ tracker.true_probability|mul:100|floatformat:1 }}%</td>
+                    <td class="{% if tracker.expected_value > 1.05 %}text-danger{% elif tracker.expected_value > 1.0 %}text-success{% endif %}">
+                        {{ tracker.expected_value|floatformat:3 }}
+                    </td>
+                    <td>${{ tracker.bet_size|floatformat:2 }}</td>
+                    <td>
+                        {% if tracker.result == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                        {% elif tracker.result == 'won' %}
+                            <span class="badge bg-success">Won</span>
+                        {% elif tracker.result == 'lost' %}
+                            <span class="badge bg-danger">Lost</span>
+                        {% elif tracker.result == 'push' %}
+                            <span class="badge bg-secondary">Push</span>
+                        {% else %}
+                            <span class="badge bg-info">{{ tracker.result|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="{% if tracker.theoretical_profit > 0 %}text-success{% elif tracker.theoretical_profit < 0 %}text-danger{% elif tracker.theoretical_profit == 0 %}text-muted{% endif %}">
+                        {% if tracker.result in 'pending,cancelled' %}
+                            -
+                        {% else %}
+                            ${{ tracker.theoretical_profit|floatformat:2 }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="card-footer">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                {% if trackers.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if days %}&days={{ days }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if bookmaker_filter != 'all' %}&bookmaker={{ bookmaker_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ trackers.previous_page_number }}{% if days %}&days={{ days }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if bookmaker_filter != 'all' %}&bookmaker={{ bookmaker_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#"><i class="fas fa-angle-double-left"></i></a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#"><i class="fas fa-angle-left"></i></a>
+                    </li>
+                {% endif %}
+                
+                {% for num in trackers.paginator.page_range %}
+                    {% if trackers.number == num %}
+                        <li class="page-item active">
+                            <a class="page-link" href="?page={{ num }}{% if days %}&days={{ days }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if bookmaker_filter != 'all' %}&bookmaker={{ bookmaker_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% elif num > trackers.number|add:'-3' and num < trackers.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if days %}&days={{ days }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if bookmaker_filter != 'all' %}&bookmaker={{ bookmaker_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if trackers.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ trackers.next_page_number }}{% if days %}&days={{ days }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if bookmaker_filter != 'all' %}&bookmaker={{ bookmaker_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ trackers.paginator.num_pages }}{% if days %}&days={{ days }}{% endif %}{% if status_filter != 'all' %}&status={{ status_filter }}{% endif %}{% if bookmaker_filter != 'all' %}&bookmaker={{ bookmaker_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#"><i class="fas fa-angle-right"></i></a>
+                    </li>
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#"><i class="fas fa-angle-double-right"></i></a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% else %}
+    <div class="card-body text-center py-5">
+        <div class="text-muted">
+            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+            <h5>No Value Bets</h5>
+            <p>No value bets found matching the selected filters.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

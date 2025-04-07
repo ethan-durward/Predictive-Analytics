@@ -1,0 +1,171 @@
+{% extends 'betting/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-user me-2"></i>Your Profile</h1>
+        <p class="text-muted">Manage your account settings and view betting statistics</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-sliders-h me-2"></i>Profile Settings</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% for field in profile_form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.errors %}
+                            <div class="text-danger small">
+                                {% for error in field.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if field.help_text %}
+                            <div class="form-text small">{{ field.help_text }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie me-2"></i>Betting Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="stats-card card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="stats-icon me-3 bg-primary-light rounded-circle p-3">
+                                        <i class="fas fa-ticket-alt text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-muted">Total Bets</h6>
+                                        <h3 class="mb-0">{{ bet_stats.total_bets }}</h3>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar bg-primary" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="stats-card card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="stats-icon me-3 bg-success-light rounded-circle p-3">
+                                        <i class="fas fa-trophy text-success"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-muted">Win/Loss</h6>
+                                        <h3 class="mb-0">{{ bet_stats.won_bets }} / {{ bet_stats.lost_bets }}</h3>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 5px;">
+                                    {% with win_percentage=bet_stats.won_bets|default:0|add:bet_stats.lost_bets|default:0|default:1|divisibleby:bet_stats.won_bets|default:0|floatformat:0 %}
+                                    <div class="progress-bar bg-success" style="width: {{ win_percentage }}%"></div>
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="stats-card card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="stats-icon me-3 {% if bet_stats.profit_loss > 0 %}bg-success-light{% else %}bg-danger-light{% endif %} rounded-circle p-3">
+                                        <i class="fas fa-dollar-sign {% if bet_stats.profit_loss > 0 %}text-success{% else %}text-danger{% endif %}"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-muted">Profit/Loss</h6>
+                                        <h3 class="mb-0 {% if bet_stats.profit_loss > 0 %}text-success{% elif bet_stats.profit_loss < 0 %}text-danger{% endif %}">
+                                            ${{ bet_stats.profit_loss|floatformat:2 }}
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar {% if bet_stats.profit_loss > 0 %}bg-success{% else %}bg-danger{% endif %}" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="stats-card card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="stats-icon me-3 bg-warning-light rounded-circle p-3">
+                                        <i class="fas fa-percentage text-warning"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 text-muted">ROI</h6>
+                                        <h3 class="mb-0 {% if bet_stats.roi > 0 %}text-success{% elif bet_stats.roi < 0 %}text-danger{% endif %}">
+                                            {{ bet_stats.roi|floatformat:2 }}%
+                                        </h3>
+                                    </div>
+                                </div>
+                                <div class="progress" style="height: 5px;">
+                                    <div class="progress-bar {% if bet_stats.roi > 0 %}bg-success{% else %}bg-danger{% endif %}" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{% url 'betting:bet_history' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line me-2"></i>View Detailed Bet History
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-cog me-2"></i>Additional Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{% url 'betting:preferences' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-bookmarks me-2"></i>
+                            <strong>Bookmaker Preferences</strong>
+                            <p class="mb-0 text-muted small">Select which bookmakers to show on your dashboard</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    <a href="{% url 'betting:my_bets' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-ticket-alt me-2"></i>
+                            <strong>My Placed Bets</strong>
+                            <p class="mb-0 text-muted small">Manage and update your bet slip</p>
+                        </div>
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

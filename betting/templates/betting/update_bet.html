@@ -1,0 +1,95 @@
+{% extends 'betting/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-edit me-2"></i>Update Bet Result</h1>
+        <p class="text-muted">Update the outcome of your placed bet</p>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Bet Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Game</h6>
+                    <p class="mb-0 fw-bold">{{ bet.game.title }}</p>
+                    <small class="text-muted">{{ bet.game.commence_time|date:"F j, Y, g:i a" }}</small>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Bet Type</h6>
+                        <p class="mb-0 fw-bold">{{ bet.bet_type|title }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Bookmaker</h6>
+                        <p class="mb-0 fw-bold">{{ bet.bookmaker }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Odds</h6>
+                        <p class="mb-0 fw-bold">{{ bet.odds|floatformat:2 }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Stake</h6>
+                        <p class="mb-0 fw-bold">${{ bet.stake|floatformat:2 }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Expected Value</h6>
+                        <p class="mb-0 fw-bold {% if bet.expected_value > 1.05 %}text-danger{% elif bet.expected_value > 1.0 %}text-success{% endif %}">
+                            {{ bet.expected_value|floatformat:3 }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Current Status</h6>
+                        <p class="mb-0">
+                            {% if bet.status == 'pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif bet.status == 'won' %}
+                                <span class="badge bg-success">Won</span>
+                            {% elif bet.status == 'lost' %}
+                                <span class="badge bg-danger">Lost</span>
+                            {% elif bet.status == 'push' %}
+                                <span class="badge bg-secondary">Push</span>
+                            {% else %}
+                                <span class="badge bg-info">{{ bet.status|title }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.status.id_for_label }}" class="form-label">Update Result</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small">
+                                {% for error in form.status.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Update Result</button>
+                        <a href="{% url 'betting:my_bets' %}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
